@@ -3,8 +3,8 @@
 #=============================================================================#
 
 ifndef PROJ_TYPE
-PROJ_TYPE = Release
-#PROJ_TYPE = Debug
+#PROJ_TYPE = Release
+PROJ_TYPE = Debug
 endif
 
 ifndef PROJECT

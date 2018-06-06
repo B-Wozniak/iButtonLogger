@@ -1,0 +1,19 @@
+iButtonLogger
+
+TODO:
+1. RS-232 communication
+	- use interrupts
+	- DMA ?
+	- circular buffer
+	- itoa()
+	- ftoa()
+	- SendByte()
+	- SendString()
+	
+	
+2. 1-wire communication
+	- ow_read()
+	- ow_write()
+	- ow_search()
+	
+3. LCD handler
