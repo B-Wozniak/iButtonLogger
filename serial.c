@@ -5,8 +5,7 @@
  *      Author: Bart
  */
 
-#include "CMSIS/stm32l4xx.h"
-#include "serial.h"
+#include "iButtonLogger.h"
 
 /* STM32L476VG specific */
 // bond USARTX with APBX

@@ -20,7 +20,7 @@ typedef struct
 typedef struct
 {
   USART_TypeDef * usart_id;   // USART number
-  uint32_t baud_rate;          // baud rate
+  uint32_t baud_rate;         // baud rate
   uint32_t clk;               // entry USART clock frequency
   TCircBuff * read_buff;      // buffer for read
   TCircBuff * write_buff;     // buffer for write
