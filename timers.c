@@ -9,6 +9,10 @@
 
 void TIM2_config(void)
 {
+  /* turn on peripheral */
+  RCC->APB1ENR1 |= RCC_APB1ENR1_TIM2EN;
+
+  /* settings */
   TIM2->PSC = 4000;
   TIM2->ARR = 1000;
   TIM2->DIER |= TIM_DIER_UIE; /* interrupt enable on 1st channel */
@@ -21,5 +25,6 @@ void TIM2_config(void)
 void TIM2_IRQHandler(void)
 {
   TIM2->SR = 0;
-  GPIOE->ODR ^= (1 << 8);
+  _set_toggle(GREEN_LED_PORT, GREEN_LED_PIN);
+  SerialSendByte(USART2, &usart2_tx_buff, 0x48);
 }

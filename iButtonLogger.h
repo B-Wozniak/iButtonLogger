@@ -14,5 +14,7 @@
 #include "serial.h"
 #include "clk_config.h"
 #include "timers.h"
+#include "def.h"
+#include "gpio.h"
 
 #endif /* IBUTTONLOGGER_H_ */

@@ -7,24 +7,18 @@
 
 #include "iButtonLogger.h"
 
-TClock sys_clk;
-
 int main(void)
 {
-  // cont pointer to non-const structure
-  TClock * const sys_clk_ptr = &sys_clk;
+  /* set system and bus clocks */
+  SystemClockConfig();
 
-//  SystemClockConfig();
-  ClkInit(sys_clk_ptr);
+  /* configure gpios */
+  GpioConfig();
 
-  RCC->CFGR |= RCC_CFGR_PPRE1_DIV4;
-  RCC->AHB2ENR |= RCC_AHB2ENR_GPIOEEN;
-  RCC->APB1ENR1 |= RCC_APB1ENR1_TIM2EN;
-
-  GPIOE->MODER &= ~(3 << (2 * 8));
-  GPIOE->MODER |= (1 << (2 * 8));
-
+  /* configure used timers */
   TIM2_config();
+
+  SerialPortConfigure(USART2, 9600UL);
 
   while (1);
 }
