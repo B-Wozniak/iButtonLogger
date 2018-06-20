@@ -7,15 +7,12 @@
 
 #include "iButtonLogger.h"
 
-TClock sys_clk;
 
 int main(void)
 {
   // cont pointer to non-const structure
-  TClock * const sys_clk_ptr = &sys_clk;
 
 //  SystemClockConfig();
-  ClkInit(sys_clk_ptr);
 
   RCC->CFGR |= RCC_CFGR_PPRE1_DIV4;
   RCC->AHB2ENR |= RCC_AHB2ENR_GPIOEEN;

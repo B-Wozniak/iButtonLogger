@@ -15,4 +15,6 @@
 #include "clk_config.h"
 #include "timers.h"
 
+#define _num_of_elem(table) (sizeof(table) / sizeof(table[0]))
+
 #endif /* IBUTTONLOGGER_H_ */

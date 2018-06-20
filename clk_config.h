@@ -5,6 +5,7 @@
  *      Author: Bart
  */
 #include "CMSIS/stm32l476xx.h"
+#include "iButtonLogger.h"
 
 #ifndef CLK_CONFIG_H_
 #define CLK_CONFIG_H_
@@ -35,6 +36,22 @@
 #define RCC_CR_MSIRANGE_32MHz       RCC_CR_MSIRANGE_10
 #define RCC_CR_MSIRANGE_48MHz       RCC_CR_MSIRANGE_11
 
+#define MSI_FREQ_100kHz   100000UL
+#define MSI_FREQ_200kHz   200000UL
+#define MSI_FREQ_400kHz   400000UL
+#define MSI_FREQ_800kHz   800000UL
+#define MSI_FREQ_1MHz     1000000UL
+#define MSI_FREQ_2MHz     2000000UL
+#define MSI_FREQ_4MHz     4000000UL
+#define MSI_FREQ_8MHz     8000000UL
+#define MSI_FREQ_16MHz    16000000UL
+#define MSI_FREQ_24MHz    24000000UL
+#define MSI_FREQ_32MHz    32000000UL
+#define MSI_FREQ_48MHz    48000000UL
+
+#define MSI_FREQ_MIN      MSI_FREQ_100kHz
+#define MSI_FREQ_MAX      MSI_FREQ_48MHz
+
 typedef enum
 {
   none,
@@ -45,38 +62,45 @@ typedef enum
   pll,
   lsi,
   lse,
-}EnumClkType;
+}ESrcClkType;
+
+typedef enum
+{
+  sysclk,
+  hclk,
+  pclk1,
+  pclk2,
+  adc_clk,
+  sai1_clk,
+  sai2_clk
+}EPeriphClk;
 
 typedef enum
 {
   ahb,
   apb1,
   apb2,
-}EnumBusType;
+}EBusType;
 
 typedef struct
 {
-  EnumClkType sys_clk_src;
-  EnumClkType pll_src;          // zrodlo dla pll'a
-  uint32_t sys_clk_freq;
-  uint32_t ahb_freq;
-  uint32_t apb1_freq;
-  uint32_t apb2_freq;
-}TClock;
+  ESrcClkType type;
+  uint32_t freq;
+}TSrcClk;
 
 typedef struct
 {
-  uint8_t msi_range;
+  EPeriphClk bus;       // szyna
+  uint32_t bus_freq;    // czestotliwosc clk tej szyny
+  TSrcClk src_clk;              // clk ktory ja napedza
+  uint8_t presc;
+}TPerpihClk;
+
+typedef struct
+{
+  uint8_t msi_range_val;
   uint32_t freq;
 }TMsiFreqConv;
-
-void ClkInit(TClock * sys_clk_ptr);
-uint32_t SetSystemClock(EnumClkType clk_src, uint32_t freq, TClock * sys_clk_ptr);
-void SetBusFreq(EnumBusType bus, uint32_t freq);
-void MsiSetup(EnumClkType clk_src, uint32_t freq, TClock * sys_clk_ptr);
-void Hsi16Setup(EnumClkType clk_src, uint32_t freq, TClock * sys_clk_ptr);
-void PllSetup(EnumClkType clk_src, uint32_t freq);
-
 
 void SystemClockConfig(void);
 
