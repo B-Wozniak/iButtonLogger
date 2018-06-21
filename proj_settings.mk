@@ -39,7 +39,7 @@ USE_NANOLIB = 0
 USE_SEMIHOSTING = 0
 
 # set to 1 to optimize size by removing unused code and data during link phase
-REMOVE_UNUSED = 1
+REMOVE_UNUSED = 0
 
 # set to 1 to use enum lenght short as posible
 SHORT_ENUMS = 0

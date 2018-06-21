@@ -7,6 +7,8 @@
 
 #include "iButtonLogger.h"
 
+static const TSerial serial_cfg = {USART2, USART2_TX_PORT, USART2_RX_PORT, USART2_TX_PIN, USART2_RX_PIN, &usart2_tx_buff, &usart2_rx_buff, USART2_IRQn};
+
 IRQn_Type ConvUsartTypeToIrqnType(USART_TypeDef * usart_id)
 {
   if (usart_id == USART1)
@@ -21,18 +23,15 @@ IRQn_Type ConvUsartTypeToIrqnType(USART_TypeDef * usart_id)
 
 void SerialPortConfigure(USART_TypeDef * usart_id, uint32_t baud_rate)
 {
-  if (!IS_USART_INSTANCE(usart_id))  // needed ?
-    return;
-
   RCC->APB1ENR1 |= RCC_APB1ENR1_USART2EN;
 
   /* set BR */
   usart_id->BRR = APB2_CLK / baud_rate;
 
   usart_id->CR1 = USART_CR1_UE      |   // usart enable
-                  USART_CR1_TE;//      |   // transmitter enable
-//                  USART_CR1_RE      |   // receiver enable
-//                  USART_CR1_RXNEIE;     // receiver not empty interrupt enable
+                  USART_CR1_TE      |   // transmitter enable
+                  USART_CR1_RE      |   // receiver enable
+                  USART_CR1_RXNEIE;     // receiver not empty interrupt enable
 
   NVIC_EnableIRQ(ConvUsartTypeToIrqnType(usart_id));
 }
