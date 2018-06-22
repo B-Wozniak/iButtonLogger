@@ -45,7 +45,7 @@ void ConfigureSerialPorts(void)
   }
 }
 
-void SerialSendByte(USART_TypeDef * usart_id, uint8_t data)
+void SerialSendByte(USART_TypeDef * usart_id, const char data)
 {
   uint8_t tmp_head;
   const TSerial * si;
@@ -59,6 +59,23 @@ void SerialSendByte(USART_TypeDef * usart_id, uint8_t data)
 
   si->tx_buff->data[tmp_head] = data;
   si->tx_buff->head = tmp_head;
+  si->usart->CR1 |= USART_CR1_TXEIE;
+}
+
+void SerialSendString(USART_TypeDef * usart_id, const char * str)
+{
+  uint8_t tmp_head;
+  const TSerial * si;
+
+  si = _GetSerialPtr(usart_id);
+
+  while (*str)
+  {
+    tmp_head = (si->tx_buff->head + 1) & BUFF_MASK;
+    while (tmp_head == si->tx_buff->tail);
+    si->tx_buff->data[tmp_head] = *str++;
+    si->tx_buff->head = tmp_head;
+  }
   si->usart->CR1 |= USART_CR1_TXEIE;
 }
 

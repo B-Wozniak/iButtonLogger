@@ -52,6 +52,7 @@ typedef struct
 }TSerial;
 
 void ConfigureSerialPorts(void);
-void SerialSendByte(USART_TypeDef * usart_id, uint8_t data);
+void SerialSendByte(USART_TypeDef * usart_id, const char data);
+void SerialSendString(USART_TypeDef * usart_id, const char * str);
 
 #endif /* SERIAL_H_ */
