@@ -7,49 +7,63 @@
 
 #include "iButtonLogger.h"
 
-static const TSerial serial_cfg = {USART2, USART2_TX_PORT, USART2_RX_PORT, USART2_TX_PIN, USART2_RX_PIN, &usart2_tx_buff, &usart2_rx_buff, USART2_IRQn};
+static const TSerial usart2_cfg = {USART2, USART2_TX_PORT, USART2_RX_PORT, USART2_TX_PIN, USART2_RX_PIN, USART2_TX_PIN_CFG, USART2_RX_PIN_CFG, USART2_CLK, USART2_BR, USART2_CLK_EN_REG, USART2_CLK_EN_VAL, &usart2_tx_buff, &usart2_rx_buff, USART2_IRQn};
 
-IRQn_Type ConvUsartTypeToIrqnType(USART_TypeDef * usart_id)
+static const TSerial * serial_interfaces[] =
 {
-  if (usart_id == USART1)
-    return USART1_IRQn;
-  if (usart_id == USART2)
-    return USART2_IRQn;
-  if (usart_id == USART3)
-    return USART3_IRQn;
-  else
-    return 0;
+    &usart2_cfg
+};
+
+// rowinac makro przy kolejnych serialach
+#define _GetSerialPtr(usart_id) (usart_id == USART2 ? (const TSerial *)&usart2_cfg : (void *)0)
+
+void ConfigureSerialPorts(void)
+{
+  uint8_t i;
+
+  /* configure every defined USART */
+  for (i = 0; i < _NumOfArrayMemb(serial_interfaces); i++)
+  {
+    /* turn on clock */
+    *serial_interfaces[i]->clk_en_reg |= serial_interfaces[i]->clk_en_val;
+
+    /* configure ports, pins */
+    gpio_pin_cfg(serial_interfaces[i]->tx_port, serial_interfaces[i]->tx_pin, serial_interfaces[i]->tx_pin_cfg);
+    gpio_pin_cfg(serial_interfaces[i]->rx_port, serial_interfaces[i]->rx_pin, serial_interfaces[i]->rx_pin_cfg);
+
+    /* set baud rate */
+    serial_interfaces[i]->usart->BRR = serial_interfaces[i]->clk / serial_interfaces[i]->baud_rate;
+
+    /* enable */
+    serial_interfaces[i]->usart->CR1 =  USART_CR1_UE      |   // usart enable
+                                        USART_CR1_TE      |   // transmitter enable
+                                        USART_CR1_RE      |   // receiver enable
+                                        USART_CR1_RXNEIE;     // receiver not empty interrupt enable
+
+    /* turn on interrupts */
+    NVIC_EnableIRQ(serial_interfaces[i]->IRqn);
+  }
 }
 
-void SerialPortConfigure(USART_TypeDef * usart_id, uint32_t baud_rate)
-{
-  RCC->APB1ENR1 |= RCC_APB1ENR1_USART2EN;
-
-  /* set BR */
-  usart_id->BRR = APB2_CLK / baud_rate;
-
-  usart_id->CR1 = USART_CR1_UE      |   // usart enable
-                  USART_CR1_TE      |   // transmitter enable
-                  USART_CR1_RE      |   // receiver enable
-                  USART_CR1_RXNEIE;     // receiver not empty interrupt enable
-
-  NVIC_EnableIRQ(ConvUsartTypeToIrqnType(usart_id));
-}
-
-void SerialSendByte(USART_TypeDef * usart_id, volatile TCircBuff * buff, uint8_t data)
+void SerialSendByte(USART_TypeDef * usart_id, uint8_t data)
 {
   uint8_t tmp_head;
+  const TSerial * si;
 
-  tmp_head = (buff->head + 1) & BUFF_MASK;
+  si = _GetSerialPtr(usart_id);
+
+  tmp_head = (si->tx_buff->head + 1) & BUFF_MASK;
 
   /* czekaj na miejsce w buforze */
-  while (tmp_head == buff->tail);
+  while (tmp_head == si->tx_buff->tail);
 
-  buff->data[tmp_head] = data;
-  buff->head = tmp_head;
-  usart_id->CR1 |= USART_CR1_TXEIE;
+  si->tx_buff->data[tmp_head] = data;
+  si->tx_buff->head = tmp_head;
+  si->usart->CR1 |= USART_CR1_TXEIE;
 }
 
+// TODO zdeklarowac wskaznik do usart2_tx_buff i nim sie poslugiwac
+//      zdeklarowac timer i porownac czas trwania tego przerwania
 void USART2_IRQHandler(void)
 {
   uint8_t tmp_tail;

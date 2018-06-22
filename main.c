@@ -18,7 +18,7 @@ int main(void)
   /* configure used timers */
   TIM2_config();
 
-  SerialPortConfigure(USART2, 9600UL);
+  ConfigureSerialPorts();
 
   while (1);
 }

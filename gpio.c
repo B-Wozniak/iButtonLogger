@@ -9,11 +9,13 @@
 
 void GpioConfig(void)
 {
+  /* wlacz zegary na wszystich GPIO */
   RCC->AHB2ENR |= (RCC_AHB2ENR_GPIOAEN | RCC_AHB2ENR_GPIOBEN | RCC_AHB2ENR_GPIOCEN | RCC_AHB2ENR_GPIODEN |
                    RCC_AHB2ENR_GPIOEEN | RCC_AHB2ENR_GPIOFEN | RCC_AHB2ENR_GPIOGEN | RCC_AHB2ENR_GPIOHEN);
 
-  gpio_pin_cfg(GREEN_LED_PORT, GREEN_LED_PIN, GPIO_OUT_PP_25MHz);
-  gpio_pin_cfg(USART2_TX_PORT, USART2_TX_PIN, GPIO_AF7_PP_2MHz);
+  /* skonfiguruj user ledy */
+  gpio_pin_cfg( GREEN_LED_PORT,  GREEN_LED_PIN, GPIO_OUT_PP_25MHz);
+  gpio_pin_cfg(   RED_LED_PORT,    RED_LED_PIN, GPIO_OUT_PP_25MHz);
 }
 
 /*

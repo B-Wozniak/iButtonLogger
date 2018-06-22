@@ -11,4 +11,6 @@
 #define SUCCES  2
 #define FAILURE 1
 
+#define _NumOfArrayMemb(array) (sizeof(array) / sizeof(array[0]))
+
 #endif /* DEF_H_ */

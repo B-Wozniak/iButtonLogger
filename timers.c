@@ -26,5 +26,5 @@ void TIM2_IRQHandler(void)
 {
   TIM2->SR = 0;
   _set_toggle(GREEN_LED_PORT, GREEN_LED_PIN);
-  SerialSendByte(USART2, &usart2_tx_buff, 0x48);
+  SerialSendByte(USART2, 0x48);
 }

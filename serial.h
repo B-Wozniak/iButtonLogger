@@ -8,11 +8,17 @@
 #ifndef SERIAL_H_
 #define SERIAL_H_
 
-#define USART2_TX_PORT GPIOD
-#define USART2_RX_PORT GPIOD
-
-#define USART2_TX_PIN 5
-#define USART2_RX_PIN 6
+/* USART2 SETTINGS */
+#define USART2_TX_PORT      GPIOD
+#define USART2_RX_PORT      GPIOD
+#define USART2_TX_PIN       5
+#define USART2_RX_PIN       6
+#define USART2_CLK_EN_REG   &(RCC->APB1ENR1)
+#define USART2_CLK_EN_VAL   (RCC_APB1ENR1_USART2EN)
+#define USART2_BR           9600UL
+#define USART2_CLK          APB2_CLK
+#define USART2_TX_PIN_CFG   GPIO_AF7_PP_2MHz
+#define USART2_RX_PIN_CFG   GPIO_AF7_PP_2MHz
 
 #define BUFF_SIZE 128UL
 #define BUFF_MASK (BUFF_SIZE - 1)
@@ -34,13 +40,18 @@ typedef struct
   GPIO_TypeDef * rx_port;
   uint8_t tx_pin;
   uint8_t rx_pin;
+  uint32_t tx_pin_cfg;
+  uint32_t rx_pin_cfg;
+  uint32_t clk;
+  uint32_t baud_rate;
+  volatile uint32_t * clk_en_reg;
+  uint32_t clk_en_val;
   volatile TCircBuff * tx_buff;
   volatile TCircBuff * rx_buff;
   IRQn_Type IRqn;
 }TSerial;
 
-IRQn_Type ConvUsartTypeToIrqnType(USART_TypeDef * usart_id);
-void SerialPortConfigure(USART_TypeDef * usart_id, uint32_t baud_rate);
-void SerialSendByte(USART_TypeDef * usart_id, volatile TCircBuff * buff, uint8_t data);
+void ConfigureSerialPorts(void);
+void SerialSendByte(USART_TypeDef * usart_id, uint8_t data);
 
 #endif /* SERIAL_H_ */
