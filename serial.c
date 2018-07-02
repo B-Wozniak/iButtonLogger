@@ -7,11 +7,16 @@
 
 #include "iButtonLogger.h"
 
+/* stm32L4 disco - komunikacja RS232, VCOM PORT */
 static const TSerial usart2_cfg = {USART2, USART2_TX_PORT, USART2_RX_PORT, USART2_TX_PIN, USART2_RX_PIN, USART2_TX_PIN_CFG, USART2_RX_PIN_CFG, USART2_CLK, USART2_BR, USART2_CLK_EN_REG, USART2_CLK_EN_VAL, &usart2_tx_buff, &usart2_rx_buff, USART2_IRQn};
+
+/* USART wykorzystywany do komunikacji interfejsem 1-wire, wykomentowany -- poki co robie na timerze*/
+//static const TSerial usart3_cfg = {USART3, USART3_TX_PORT, USART3_RX_PORT, USART3_TX_PIN, USART3_RX_PIN, USART3_TX_PIN_CFG, USART3_RX_PIN_CFG, USART3_CLK, USART3_BR, USART3_CLK_EN_REG, USART3_CLK_EN_VAL, 0, 0, USART3_IRQn};
 
 static const TSerial * serial_interfaces[] =
 {
-    &usart2_cfg
+    &usart2_cfg,
+//    &usart3_cfg
 };
 
 // rowinac makro przy kolejnych serialach

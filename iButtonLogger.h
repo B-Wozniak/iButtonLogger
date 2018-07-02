@@ -16,5 +16,6 @@
 #include "timers.h"
 #include "def.h"
 #include "gpio.h"
+#include "one_wire.h"
 
 #endif /* IBUTTONLOGGER_H_ */
