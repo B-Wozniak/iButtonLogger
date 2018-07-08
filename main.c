@@ -15,10 +15,11 @@ int main(void)
   /* configure gpios */
   GpioConfig();
 
-  /* configure used timers */
+  /* Init OneWire */
+//  OwInit();
   TIM2_config();
 
-  ConfigureSerialPorts();
+//  ConfigureSerialPorts();
 
   while (1);
 }

@@ -502,9 +502,9 @@
 #define RED_LED_PORT    GPIOB
 #define RED_LED_PIN     2
 
-#define _set_high(port, pin) (port->ODR |= (1 << pin))
-#define _set_low(port, pin)  (port->ODR &= ~(1 << pin))
-#define _set_toggle(port, pin)  (port->ODR ^= (1 << pin))
+#define _set_high(port, pin)    (port->ODR |=   (1 << pin))
+#define _set_low(port, pin)     (port->ODR &=  ~(1 << pin))
+#define _toggle_pin(port, pin)  (port->ODR ^=   (1 << pin))
 
 void GpioConfig(void);
 void gpio_pin_cfg(GPIO_TypeDef *port_ptr, uint32_t pin, uint32_t configuration);

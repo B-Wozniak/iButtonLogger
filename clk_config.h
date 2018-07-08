@@ -23,10 +23,10 @@
 #define RCC_CR_MSIRANGE_48MHz       RCC_CR_MSIRANGE_11
 
 /* configured clocks */
-#define SYSCLK    16000000UL  // MSI 16MHz
+#define SYSCLK    32000000UL  // MSI 32MHz
 #define AHB_CLK   SYSCLK      // no presc
-#define APB1_CLK  4000000UL   // 4MHz (apb1presc = 4)
-#define APB2_CLK  4000000UL   // 4MHz (apb2presc = 4)
+#define APB1_CLK  4000000UL
+#define APB2_CLK  4000000UL
 
 void SystemClockConfig(void);
 

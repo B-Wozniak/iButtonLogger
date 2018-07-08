@@ -13,10 +13,10 @@ static const TSerial usart2_cfg = {USART2, USART2_TX_PORT, USART2_RX_PORT, USART
 /* USART wykorzystywany do komunikacji interfejsem 1-wire, wykomentowany -- poki co robie na timerze*/
 //static const TSerial usart3_cfg = {USART3, USART3_TX_PORT, USART3_RX_PORT, USART3_TX_PIN, USART3_RX_PIN, USART3_TX_PIN_CFG, USART3_RX_PIN_CFG, USART3_CLK, USART3_BR, USART3_CLK_EN_REG, USART3_CLK_EN_VAL, 0, 0, USART3_IRQn};
 
-static const TSerial * serial_interfaces[] =
+static const TSerial * const serial_interfaces[] =
 {
     &usart2_cfg,
-//    &usart3_cfg
+//    &usart2_cfg
 };
 
 // rowinac makro przy kolejnych serialach
@@ -29,12 +29,12 @@ void ConfigureSerialPorts(void)
   /* configure every defined USART */
   for (i = 0; i < _NumOfArrayMemb(serial_interfaces); i++)
   {
-    /* turn on clock */
-    *serial_interfaces[i]->clk_en_reg |= serial_interfaces[i]->clk_en_val;
-
     /* configure ports, pins */
     gpio_pin_cfg(serial_interfaces[i]->tx_port, serial_interfaces[i]->tx_pin, serial_interfaces[i]->tx_pin_cfg);
     gpio_pin_cfg(serial_interfaces[i]->rx_port, serial_interfaces[i]->rx_pin, serial_interfaces[i]->rx_pin_cfg);
+
+    /* turn on clock */
+    *serial_interfaces[i]->clk_en_reg |= serial_interfaces[i]->clk_en_val;
 
     /* set baud rate */
     serial_interfaces[i]->usart->BRR = serial_interfaces[i]->clk / serial_interfaces[i]->baud_rate;
