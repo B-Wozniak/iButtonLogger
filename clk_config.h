@@ -5,6 +5,7 @@
  *      Author: Bart
  */
 #include "CMSIS/stm32l476xx.h"
+#include "def.h"
 
 #ifndef CLK_CONFIG_H_
 #define CLK_CONFIG_H_
@@ -23,10 +24,27 @@
 #define RCC_CR_MSIRANGE_48MHz       RCC_CR_MSIRANGE_11
 
 /* configured clocks */
-#define SYSCLK    32000000UL  // MSI 32MHz
-#define AHB_CLK   SYSCLK      // no presc
-#define APB1_CLK  4000000UL
-#define APB2_CLK  4000000UL
+#define SYSCLK          32000000UL  // MSI 32MHz
+#define AHB_CLK         SYSCLK      // no presc
+#define APB1_DIV        4UL
+#define APB2_DIV        4UL
+#define APB1_CLK        (SYSCLK / APB1_DIV)
+#define APB2_CLK        (SYSCLK / APB2_DIV)
+
+
+
+
+#if USE_APB1_DIV == TRUE
+#define APB1_TIMER_MULT 2
+#else
+#define APB1_TIMER_MULT 1
+#endif
+
+#if USE_APB2_DIV == TRUE
+#define APB2_TIMER_MULT 2
+#else
+#define APB2_TIMER_MULT 1
+#endif
 
 void SystemClockConfig(void);
 

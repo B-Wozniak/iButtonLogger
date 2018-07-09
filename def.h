@@ -8,8 +8,12 @@
 #ifndef DEF_H_
 #define DEF_H_
 
+/* bool statement values */
 #define SUCCES  2
 #define FAILURE 1
+#define TRUE    2
+#define FALSE   1
+
 
 #define NULL 0
 

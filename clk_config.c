@@ -7,6 +7,9 @@
 
 #include "iButtonLogger.h"
 
+/* every clk modification (msi freq, apb1/apb2 dividers)
+ * requires changes in clk_config.h macros
+ */
 void SystemClockConfig(void)
 {
   /* turn on HSI clock and wait till HSI is stable*/
@@ -23,7 +26,7 @@ void SystemClockConfig(void)
   __DSB();
 
   /* set MSI to 32MHz */
-  RCC->CR = RCC_CR_MSIRANGE_16MHz;
+  RCC->CR = RCC_CR_MSIRANGE_32MHz;
   RCC->CR |= RCC_CR_MSION;
   while ((RCC->CR & RCC_CR_MSIRDY) == 0);
 

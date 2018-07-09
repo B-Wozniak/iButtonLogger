@@ -16,8 +16,8 @@ int main(void)
   GpioConfig();
 
   /* Init OneWire */
-//  OwInit();
-  TIM2_config();
+  OwInit();
+//  TIM2_config();
 
 //  ConfigureSerialPorts();
 

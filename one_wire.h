@@ -39,6 +39,13 @@
 #define OW_PIN            2
 #define OW_PIN_DEF_CFG    GPIO_OUT_OD_100MHz    // for 1Hz 'search rom' polling
 
+#define OW_LOW  (_set_high(OW_PORT, OW_PIN))  // OW pin is OD, writing one, pulling down the bus
+#define OW_HIGH (_set_low(OW_PORT, OW_PIN))   // release bus
+#define OW_INPUT_MODE (gpio_pin_cfg(OW_PORT, OW_PIN, GPIO_IN_FLOATING))
+#define OW_OD_MODE (gpio_pin_cfg(OW_PORT, OW_PIN, GPIO_OUT_OD_100MHz))
+#define OW_READ_BUS (_gpio_read(OW_PORT, OW_PIN))
+
+
 typedef enum
 {
   idle = 0,
