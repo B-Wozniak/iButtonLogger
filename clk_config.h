@@ -31,6 +31,9 @@
 #define APB1_CLK        (SYSCLK / APB1_DIV)
 #define APB2_CLK        (SYSCLK / APB2_DIV)
 
+#define USE_APB1_DIV TRUE
+#define USE_APB2_DIV TRUE
+
 
 
 

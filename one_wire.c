@@ -7,7 +7,7 @@
 
 #include "iButtonLogger.h"
 
-static EOwState OneWireState = polling;
+static volatile EOwState OneWireState = polling;
 
 void OwInit(void)
 {
@@ -22,18 +22,19 @@ void OwInit(void)
 #endif
 
 /* macros to PSC, ARR val -> to not forget ( -1 ) */
-#define _psc_arr_val(val) ((val) - 1)
+#define _arr_val(val) ((val) - 1)
+#define _psc_val(val) (val * APB1_TIMER_MULT - 1)
 
   /* configure timer for 1sec polling */
-  OW_TIM->PSC = (8000 * APB1_TIMER_MULT) - 1; //  1MHz
+  OW_TIM->PSC = _psc_val(8); //  1MHz
   OW_TIM->CCR1 = OW_POLLING;
   OW_TIM->CCR2 = OW_POLLING + OW_H;
-  OW_TIM->ARR = _psc_arr_val(OW_POLLING + OW_H + OW_C);
+  OW_TIM->ARR = _arr_val(OW_POLLING + OW_H + OW_C);
   OW_TIM->DIER |= TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE;
   OW_TIM->EGR = 1;
   OW_TIM->SR = 0;
   NVIC_EnableIRQ(OW_IRQn);
-  OW_TIM->CR1 |= TIM_CR1_CEN;
+  OW_TIM->CR1 |=  TIM_CR1_CEN;
 }
 
 void TIM2_IRQHandler(void)
@@ -49,13 +50,14 @@ void TIM2_IRQHandler(void)
   uint32_t sr;
 
   /* copy status register */
-  sr = OW_TIM->SR;
+  sr = OW_TIM->SR & (TIM_SR_CC1IF | TIM_SR_CC2IF | TIM_SR_UIF);
   OW_TIM->SR = 0;
 
   /* depending on 1Wire state, take the action */
   switch(OneWireState)
   {
     case polling:
+    {
       switch(sr)
       {
         case TIM_SR_CC1IF:
@@ -71,21 +73,40 @@ void TIM2_IRQHandler(void)
            * master waits for presence pulse from slave
            */
           OW_HIGH;
-          OW_INPUT_MODE;
+          GPIOA->MODER &= ~(3 << (2*2));
         }
         break;
 
         case TIM_SR_UIF:
         {
-          /* here, we should be in the middle of slaves presence pulse, sample it */
+          /* here, we should be in the middle of slave presence pulse */
+
           if (!OW_READ_BUS)
-            _set_high(GREEN_LED_PORT, GREEN_LED_PIN);
+            /* presence pulse detected */
+            OneWireState = read;
+          else
+            /* no device on bus, turn on red led */
+            _set_high(RED_LED_PORT, RED_LED_PIN);
 
           /* set 1Wire pin back to OD mode */
           OW_OD_MODE;
+          OW_HIGH;
         }
         break;
       }
+    }
+    break;
+
+    case read:
+    {
+      switch(sr)
+      {
+        case TIM_SR_CC1IF:
+          _set_low(RED_LED_PORT, RED_LED_PIN);
+          _toggle_pin(GREEN_LED_PORT, GREEN_LED_PIN);
+        break;
+      }
+    }
     break;
 
     default:
