@@ -34,7 +34,9 @@
 #define USE_APB1_DIV TRUE
 #define USE_APB2_DIV TRUE
 
-
+#if APB1_CLK < 1000000
+#error apb1 clock should be at least 1MHz, 1Wire configuration requirement
+#endif
 
 
 #if USE_APB1_DIV == TRUE

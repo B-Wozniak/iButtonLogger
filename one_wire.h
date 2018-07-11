@@ -50,7 +50,7 @@ typedef enum
 {
   idle = 0,
   polling,
-  write_rom_command,
+  write,
   read,
 }EOwState;
 

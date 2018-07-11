@@ -7,7 +7,15 @@
 
 #include "iButtonLogger.h"
 
-static volatile EOwState OneWireState = polling;
+static volatile EOwState OneWireState = idle;
+
+/* macros to PSC, ARR val -> to not forget ( -1 ) */
+#define _arr_val(val) ((val) - 1)
+#define _psc_val(val) (val * APB1_TIMER_MULT - 1)
+
+static void OWPollingInit(void);
+static void OWWriteInit(void);
+static void OWReadInit(void);
 
 void OwInit(void)
 {
@@ -17,24 +25,38 @@ void OwInit(void)
   /* enable OneWire clock in RCC register*/
   *OW_TIM_EN_REG |= OW_TIM_EN_VAL;
 
-#if APB1_CLK < 1000000
-#error apb1 clock should be at least 1MHz
-#endif
+  /* 1Wire timer == 1MHz */
+  OW_TIM->PSC = _psc_val(8);
+  OW_TIM->DIER |= TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE;
 
-/* macros to PSC, ARR val -> to not forget ( -1 ) */
-#define _arr_val(val) ((val) - 1)
-#define _psc_val(val) (val * APB1_TIMER_MULT - 1)
+  NVIC_EnableIRQ(OW_IRQn);
+  OWPollingInit();
+}
 
-  /* configure timer for 1sec polling */
-  OW_TIM->PSC = _psc_val(8); //  1MHz
+void OWPollingInit(void)
+{
+  OneWireState = polling;
+
   OW_TIM->CCR1 = OW_POLLING;
   OW_TIM->CCR2 = OW_POLLING + OW_H;
   OW_TIM->ARR = _arr_val(OW_POLLING + OW_H + OW_C);
-  OW_TIM->DIER |= TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE;
-  OW_TIM->EGR = 1;
-  OW_TIM->SR = 0;
-  NVIC_EnableIRQ(OW_IRQn);
-  OW_TIM->CR1 |=  TIM_CR1_CEN;
+  OW_TIM->CR1 |= TIM_CR1_CEN;
+}
+
+void OWWriteInit(void)
+{
+  /* set timer to one pulse mode */
+  OW_TIM->CR1 |= TIM_CR1_OPM;
+
+  OW_TIM->CCR1 = OW_POLLING;
+  OW_TIM->CCR2 = OW_POLLING + OW_H;
+  OW_TIM->ARR = _arr_val(OW_POLLING + OW_H + OW_C);
+  OW_TIM->CR1 |= TIM_CR1_CEN;
+}
+
+void OWReadInit(void)
+{
+
 }
 
 void TIM2_IRQHandler(void)
@@ -82,8 +104,13 @@ void TIM2_IRQHandler(void)
           /* here, we should be in the middle of slave presence pulse */
 
           if (!OW_READ_BUS)
+          {
             /* presence pulse detected */
-            OneWireState = read;
+            _set_low(RED_LED_PORT, RED_LED_PIN);
+            OneWireState = write;
+            sr = 0;
+            OWWriteInit();
+          }
           else
             /* no device on bus, turn on red led */
             _set_high(RED_LED_PORT, RED_LED_PIN);
@@ -98,6 +125,18 @@ void TIM2_IRQHandler(void)
     break;
 
     case read:
+    {
+      switch(sr)
+      {
+        case TIM_SR_CC1IF:
+          _set_low(RED_LED_PORT, RED_LED_PIN);
+          _toggle_pin(GREEN_LED_PORT, GREEN_LED_PIN);
+        break;
+      }
+    }
+    break;
+
+    case write:
     {
       switch(sr)
       {
