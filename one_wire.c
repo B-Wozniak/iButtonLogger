@@ -7,17 +7,24 @@
 
 #include "iButtonLogger.h"
 
-static volatile EOwState OneWireState = idle;
-
 /* macros to PSC, ARR val -> to not forget ( -1 ) */
 #define _arr_val(val) ((val) - 1)
 #define _psc_val(val) (val * APB1_TIMER_MULT - 1)
+#define _ow_sample ()
 
 static void OWPollingInit(void);
-static void OWWriteInit(void);
+static void OWWriteInit(EOwCmd cmd);
 static void OWReadInit(void);
+static void OwStart(void);
 
-void OwInit(void)
+static volatile EOwState one_wire_state = idle;
+static volatile EOwState one_wire_next_state = idle;
+static const uint8_t one_wire_cmd_values[one_wire_commands] = {0x33, 0xF0, 0x55, 0xCC};
+volatile TIButton ibutton_device;
+
+static const uint8_t * ow_cmd = NULL;
+
+void OWInit(void)
 {
   /* configure OneWire port and pin*/
   gpio_pin_cfg(OW_PORT, OW_PIN, OW_PIN_DEF_CFG);
@@ -27,89 +34,153 @@ void OwInit(void)
 
   /* 1Wire timer == 1MHz */
   OW_TIM->PSC = _psc_val(8);
-  OW_TIM->DIER |= TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE;
 
+  /* turn on irqn's */
   NVIC_EnableIRQ(OW_IRQn);
+
+  /* init 1-sec polling (search for slave)*/
   OWPollingInit();
 }
 
+
+/*
+ * @brief Init one wire state machine: polling
+ * Each second master pulls bus low and awaits for presence pulls from the slave. Routine:
+ * - start: count to 1 second, then drive bus low <-- that's the added part, rest is standard 1wire signaling
+ * - count to OW_H = 480us, then release bus, then switch pin to input mode
+ * - count to OW_C = 60us, then test bus for the presence pulse
+ * - if presence pulse detected, switch to write state
+ */
 void OWPollingInit(void)
 {
-  OneWireState = polling;
+  one_wire_state = polling;
+
+  /* set timer to continous mode */
+  OW_TIM->CR1 &= ~TIM_CR1_OPM;
+
+  /* enable irqns on channels */
+  OW_TIM->DIER = TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE | TIM_DIER_CC3IE;
 
   OW_TIM->CCR1 = OW_POLLING;
   OW_TIM->CCR2 = OW_POLLING + OW_H;
-  OW_TIM->ARR = _arr_val(OW_POLLING + OW_H + OW_C);
-  OW_TIM->CR1 |= TIM_CR1_CEN;
+  OW_TIM->CCR3 = OW_POLLING + OW_H + OW_I;
+  OW_TIM->ARR = _arr_val(OW_POLLING + OW_H + OW_I + OW_J);
+
+  OwStart();
 }
 
-void OWWriteInit(void)
+/*
+ * @brief Init one wire state machine: write
+ */
+
+void OWWriteInit(EOwCmd cmd)
 {
+  one_wire_state = write;
+  ow_cmd = &one_wire_cmd_values[cmd];
+
   /* set timer to one pulse mode */
   OW_TIM->CR1 |= TIM_CR1_OPM;
 
-  OW_TIM->CCR1 = OW_POLLING;
-  OW_TIM->CCR2 = OW_POLLING + OW_H;
-  OW_TIM->ARR = _arr_val(OW_POLLING + OW_H + OW_C);
-  OW_TIM->CR1 |= TIM_CR1_CEN;
+  OW_TIM->DIER = TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE;
+  OW_TIM->CCR1 = OW_A;  // write 1 time
+  OW_TIM->CCR2 = OW_C;  // write 0 time
+  OW_TIM->ARR = _arr_val(OW_T_BIT);
+
+  OwStart();
 }
+
+/*
+ * @brief Init one wire state machine: read
+ */
 
 void OWReadInit(void)
 {
+  one_wire_state = read;
 
+  /* set timer to one pulse mode */
+  OW_TIM->CR1 |= TIM_CR1_OPM;
+
+  OW_TIM->DIER = TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE;
+  OW_TIM->CCR1 = OW_A;
+  OW_TIM->CCR2 = OW_A + OW_E;
+  OW_TIM->ARR = _arr_val(OW_T_BIT);
+
+  OwStart();
 }
 
-void TIM2_IRQHandler(void)
+/*
+ * @brief Trigger for one wire timer
+ */
+
+void OwStart(void)
 {
-  /*
-   * polling state:
-   *  each second master pulls bus low (ow_reset) and awaits for presence pulls from the slave, so:
-   *    - start: count to 1 second (CCR1), then drive bus low
-   *    - count to OW_H = 480us (CCR2), then release bus, then switch pin to input mode
-   *    - count to OW_C = 60us (ARR), then test bus for the presence pulse
-   *
-   */
+  OW_TIM->SR = 0;
+  if (one_wire_state != polling)
+    OW_LOW;
+  OW_TIM->CR1 |= TIM_CR1_CEN;
+}
+
+// polling state
+#define _polling_time               TIM_SR_CC1IF
+#define _polling_reset_time         TIM_SR_CC2IF
+#define _polling_presence_sample    TIM_SR_CC3IF
+#define _poll_and_reset_end         TIM_SR_UIF
+
+// write state
+#define _write_one_time             TIM_SR_CC1IF
+#define _write_zero_time            TIM_SR_CC2IF
+
+// read state
+#define _read_bus_release           TIM_SR_CC1IF
+#define _read_sample                TIM_SR_CC2IF
+
+// read, write common
+#define _bit_end                    TIM_SR_UIF
+
+void OneWireInterrupt(void)
+{
   uint32_t sr;
+  static uint8_t bit_pos;
+  static uint8_t byte_cnt;
 
   /* copy status register */
   sr = OW_TIM->SR & (TIM_SR_CC1IF | TIM_SR_CC2IF | TIM_SR_UIF);
   OW_TIM->SR = 0;
 
   /* depending on 1Wire state, take the action */
-  switch(OneWireState)
+  switch(one_wire_state)
   {
     case polling:
     {
       switch(sr)
       {
-        case TIM_SR_CC1IF:
+        case _polling_time:
         {
-          /* polling time elapsed, start reset -> pull bus low */
+          /* polling time elapsed, start reset sequence -> pull bus low */
           OW_LOW;
         }
         break;
 
-        case TIM_SR_CC2IF:
+        case _polling_reset_time:
         {
           /* reset time elapsed, release the bus, change pin mode to input,
            * master waits for presence pulse from slave
            */
           OW_HIGH;
-          GPIOA->MODER &= ~(3 << (2*2));
+          OW_INPUT_MODE;
         }
         break;
 
-        case TIM_SR_UIF:
+        case _polling_presence_sample:
         {
           /* here, we should be in the middle of slave presence pulse */
 
+          /* sample bus */
           if (!OW_READ_BUS)
           {
             /* presence pulse detected */
             _set_low(RED_LED_PORT, RED_LED_PIN);
-            OneWireState = write;
-            sr = 0;
-            OWWriteInit();
+            one_wire_next_state = write;
           }
           else
             /* no device on bus, turn on red led */
@@ -120,6 +191,15 @@ void TIM2_IRQHandler(void)
           OW_HIGH;
         }
         break;
+
+        case _poll_and_reset_end:
+        {
+          /* end of reset sequence, do nothing if no device on bus*/
+          if (one_wire_next_state == write)
+            /* start write sequence */
+            OWWriteInit(read_rom);
+        }
+        break;
       }
     }
     break;
@@ -128,9 +208,42 @@ void TIM2_IRQHandler(void)
     {
       switch(sr)
       {
-        case TIM_SR_CC1IF:
-          _set_low(RED_LED_PORT, RED_LED_PIN);
-          _toggle_pin(GREEN_LED_PORT, GREEN_LED_PIN);
+        case _read_bus_release:
+        {
+          OW_HIGH;  // release bus
+          OW_INPUT_MODE;
+        }
+        break;
+
+        case _read_sample:
+        {
+          ibutton_device.key |= OW_READ_BUS << (bit_pos * byte_cnt);
+          bit_pos++;
+        }
+        break;
+
+        case _bit_end:
+        {
+          /* set 1Wire pin back to OD mode */
+          OW_OD_MODE;
+          OW_HIGH;
+
+          /* one wire commands always 1-byte long */
+          if (bit_pos < 8)
+            OwStart();
+          else
+          {
+            bit_pos = 0;
+            byte_cnt++;
+          }
+
+          if (byte_cnt == KEY_SIZE)
+          {
+            /* wszystko odebrane, co robic w idle ? kiedy wznawiac polling ??
+             * moze po sprawdzeniu klucza ? zapisie go do jakiejs bazy ? */
+            one_wire_state = idle;
+          }
+        }
         break;
       }
     }
@@ -140,15 +253,56 @@ void TIM2_IRQHandler(void)
     {
       switch(sr)
       {
-        case TIM_SR_CC1IF:
-          _set_low(RED_LED_PORT, RED_LED_PIN);
-          _toggle_pin(GREEN_LED_PORT, GREEN_LED_PIN);
+        case _write_one_time:
+        {
+          // if (sending bit == 1)
+          if (*ow_cmd & (1 << bit_pos))
+          {
+            OW_HIGH;
+            bit_pos++;
+          }
+        }
+        break;
+
+        case _write_zero_time:
+        {
+          // if (sending bit == 0)
+          if (!(*ow_cmd & (1 << bit_pos)))
+          {
+            OW_HIGH;
+            bit_pos++;
+          }
+//          rownie dobrze moze byc po prostu?:
+//          OW_HIGH;
+//          bit_pos++;
+        }
+        break;
+
+        case _bit_end:
+        {
+          /* one wire commands always 1-byte long */
+          if (bit_pos < 8)
+            OwStart();
+          else
+          {
+            bit_pos = 0;
+            OWReadInit();
+          }
+        }
         break;
       }
     }
     break;
 
+    case idle:
+    {
+      one_wire_state = idle;  // just to stop debugger here
+    }
+    break;
+
     default:
+      /* we should never be here
+       * add state machine error handler ? */
       break;
   }
 }
