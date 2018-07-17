@@ -32,12 +32,11 @@
 #define OW_IRQn TIM2_IRQn
 #define OneWireInterrupt  TIM2_IRQHandler
 
-
 #define OW_TIM_PRESC_VAL  31999UL
 #define OW_TIM_ARR        1000UL
 #define OW_TIM_IRQN       TIM2_IRQn
-#define OW_PORT           GPIOA
-#define OW_PIN            2
+#define OW_PORT           GPIOD
+#define OW_PIN            0
 #define OW_PIN_DEF_CFG    GPIO_OUT_OD_2MHz    // for 1Hz 'search rom' polling
 
 #define OW_LOW  (_set_low(OW_PORT, OW_PIN)) // pull 1Wire bus low
@@ -77,6 +76,8 @@ typedef enum
   skip_rom,
   one_wire_commands // do not use, only size of enum
 }EOwCmd;
+
+extern volatile EOwState one_wire_state;
 
 void OWInit(void);
 
