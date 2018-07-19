@@ -37,7 +37,7 @@ void OWInit(void)
   OW_TIM->CR1 |= TIM_CR1_URS;
 
   /* 1Wire timer == 1MHz */
-  OW_TIM->PSC = _psc_val(8);
+  OW_TIM->PSC = 20 * 2 - 1;
 
   /* turn on irqn's */
   NVIC_EnableIRQ(OW_IRQn);
@@ -131,7 +131,7 @@ void OwStart(void)
 
 // read, write common
 #define _bit_end                    TIM_SR_UIF
-//
+
 //void OneWireInterrupt(void)
 //{
 //  uint32_t sr;
@@ -300,4 +300,4 @@ void OwStart(void)
 //      break;
 //  }
 //}
-//
+
