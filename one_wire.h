@@ -37,12 +37,17 @@
 #define OW_TIM_IRQN       TIM2_IRQn
 #define OW_PORT           GPIOD
 #define OW_PIN            0
-#define OW_PIN_DEF_CFG    GPIO_OUT_OD_2MHz    // for 1Hz 'search rom' polling
+#define OW_PIN_DEF_CFG    GPIO_OUT_OD_100MHz    // for 1Hz 'search rom' polling
 
 #define OW_LOW  (_set_low(OW_PORT, OW_PIN)) // pull 1Wire bus low
 #define OW_HIGH (_set_high(OW_PORT, OW_PIN)) // release the bus
-#define OW_INPUT_MODE (gpio_pin_cfg(OW_PORT, OW_PIN, GPIO_IN_FLOATING))
-#define OW_OD_MODE (gpio_pin_cfg(OW_PORT, OW_PIN, GPIO_OUT_OD_100MHz))
+
+#define OW_INPUT_MODE (OW_PORT->MODER &= ~(1 << (OW_PIN * 2)))
+#define OW_OD_MODE    (OW_PORT->MODER |= (1 << (OW_PIN * 2)))
+//a moze jednak tak ? zawsze bezpieczniej czyscic najpierw ustawiane bity, mniejsze ryzyko pomylki
+//#define OW_INPUT_MODE()   do { OW_PORT->MODER &= ~(GPIO_MODER_mask << (OW_PIN * 2)); OW_PORT->MODER |= (GPIO_MODER_IN_value << (OW_PIN * 2)));  } while (0)
+//#define OW_OD_MODE()      do { OW_PORT->MODER &= ~(GPIO_MODER_mask << (OW_PIN * 2)); OW_PORT->MODER |= (GPIO_MODER_OUT_value << (OW_PIN * 2))); } while (0)
+
 #define OW_READ_BUS (_gpio_read(OW_PORT, OW_PIN))
 
 #define SERIAL_NUMBER_SIZE 6

@@ -45,7 +45,7 @@ void SystemClockConfig(void)
   while ((RCC->CR & RCC_CR_PLLRDY) == 0);
 
   /* select PLL as system clock */
-  RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW_Msk) | RCC_CFGR_SW_PLL | RCC_CFGR_PPRE1_DIV8;
+  RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW_Msk) | RCC_CFGR_SW_PLL;// | RCC_CFGR_PPRE1_DIV8;
   while ((RCC->CFGR & RCC_CFGR_SWS_PLL) != RCC_CFGR_SWS_PLL);
 
   /* turn off HSI */

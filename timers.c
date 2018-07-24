@@ -29,8 +29,8 @@ void TIM5_config(void)
 
 }
 
-void TIM2_IRQHandler(void)
-{
-  TIM2->SR = 0;
-  _toggle_pin(RED_LED_PORT, RED_LED_PIN);
-}
+//void TIM2_IRQHandler(void)
+//{
+//  TIM2->SR = 0;
+//  _toggle_pin(RED_LED_PORT, RED_LED_PIN);
+//}

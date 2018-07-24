@@ -8,18 +8,18 @@
 #include "iButtonLogger.h"
 
 /* ********************** DEBUG ******************** */
-volatile uint8_t state;
-volatile uint8_t prev_state = 0;
+//volatile uint8_t state;
+//volatile uint8_t prev_state = 0;
 
-typedef struct
-{
-  EOwState one_wire_state;
-  uint32_t time[64];
-  uint32_t bus_state[64];
-}TOWdebug;
-
-TOWdebug ow_logger;
-TOWdebug * logger = &ow_logger;
+//typedef struct
+//{
+//  EOwState one_wire_state;
+//  uint32_t time[64];
+//  uint32_t bus_state[64];
+//}TOWdebug;
+//
+//TOWdebug ow_logger;
+//TOWdebug * logger = &ow_logger;
 /* ********************** DEBUG ******************** */
 
 int main(void)
@@ -32,9 +32,9 @@ int main(void)
 //  gpio_pin_cfg(GPIOH, 0, GPIO_IN_FLOATING);
 
   /* Init OneWire */
-//  OWInit();
+  OWInit();
 //  TIM5_config();
-  TIM2_config();
+//  TIM2_config();
 
 //  ConfigureSerialPorts();
 //  TIM5->CR1 |= TIM_CR1_CEN;
