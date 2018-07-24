@@ -6,9 +6,8 @@
  *
  *  TODO:
  *  - OwStart() - zamiast tego po prostu jedna instrukcja wlaczac timer ?
- *  - bariery - sprawdzic poprawnosc kasowania flag statusu przerwan (OW_TIM->SR), czy
- *              przypadkiem nie trzeba uzyc barier
- *  - OW_OD_MODE, OW_INPUT_MODE - ktorej wersji uzyc ? z czyszczeniem czy bez ?
+ *  - bariery - sprawdzic poprawnosc kasowania flag statusu przerwan (OW_TIM->SR),
+ *              czy przypadkiem nie trzeba uzyc barier
  */
 
 #include "iButtonLogger.h"
@@ -169,16 +168,12 @@ void OneWireInterrupt(void)
            * master waits for presence pulse from slave
            */
           OW_HIGH;
-          // tu dac __DSB ?
-          OW_INPUT_MODE;
         }
         break;
 
         case _polling_presence_sample:
         {
-          /* here, we should be in the middle of slave presence pulse */
-
-          /* sample bus */
+          /* it is time to sample bus */
           if (!bus_state)
           {
             /* presence pulse detected */
@@ -187,12 +182,10 @@ void OneWireInterrupt(void)
             OW_TIM->CR1 |= TIM_CR1_OPM;
           }
           else
+          {
             /* no device on bus, turn on red led */
             _set_high(RED_LED_PORT, RED_LED_PIN);
-
-          /* set 1Wire pin back to OD mode */
-          OW_OD_MODE;
-//          OW_HIGH; to jest chyba niepotrzebne
+          }
         }
         break;
 
@@ -220,8 +213,6 @@ void OneWireInterrupt(void)
         case _read_bus_release:
         {
           OW_HIGH;  // release bus
-          // tu dac __DSB ?
-          OW_INPUT_MODE;
         }
         break;
 
@@ -235,10 +226,6 @@ void OneWireInterrupt(void)
         case _bit_end:
         {
           bit_pos++;
-
-          /* set 1Wire pin back to OD mode */
-          OW_OD_MODE;
-//          OW_HIGH; to jest chyba niepotrzebne
 
           /* one wire commands always 1-byte long */
           if (bit_pos == 8)

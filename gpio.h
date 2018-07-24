@@ -504,6 +504,10 @@
 
 #define _set_high(port, pin)    (port->ODR |=   (1 << pin))
 #define _set_low(port, pin)     (port->ODR &=  ~(1 << pin))
+
+#define _set_atomic_high(port, pin) (port->BSRR |= (1 << pin))
+#define _set_atomic_low(port, pin)  (port->BRR |= (1 << pin))
+
 #define _toggle_pin(port, pin)  (port->ODR ^=   (1 << pin))
 #define _gpio_read(port,pin)    (port->IDR & (1 << pin))
 
