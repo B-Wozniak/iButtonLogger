@@ -72,9 +72,9 @@ typedef union
 {
   struct
   {
-    uint8_t crc;
-    uint8_t serial_number[SERIAL_NUMBER_SIZE];
     uint8_t family_code;
+    uint8_t serial_number[SERIAL_NUMBER_SIZE];
+    uint8_t crc;
   }rom;
   uint64_t key;
 }TIButton;

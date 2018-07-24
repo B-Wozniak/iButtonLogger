@@ -22,10 +22,10 @@ static void OWWriteInit(EOwCmd cmd);
 static void OWReadInit(void);
 static void OwStart(void);
 
+static volatile TIButton ibutton;
 
 static volatile EOwState one_wire_next_state = idle;
 static const uint8_t one_wire_cmd_values[one_wire_commands] = {0x33, 0xF0, 0x55, 0xCC};
-static uint64_t temp_read;
 
 static const uint8_t * ow_cmd = NULL;
 
@@ -114,7 +114,7 @@ void OWReadInit(void)
 
 void OwStart(void)
 {
-//  OW_TIM->SR = 0;
+  OW_TIM->SR = 0;
   if (one_wire_state != polling)
     OW_LOW;
   OW_TIM->CR1 |= TIM_CR1_CEN;
@@ -140,8 +140,10 @@ void OwStart(void)
 void OneWireInterrupt(void)
 {
   uint32_t sr;
+  static uint8_t data_byte;
   static uint8_t bit_pos;
   static uint8_t byte_cnt;
+  uint8_t temp = sizeof(ibutton);
 
   uint32_t bus_state = OW_READ_BUS;
 
@@ -219,7 +221,7 @@ void OneWireInterrupt(void)
         case _read_sample:
         {
           if (bus_state)
-            temp_read |= (1 << (bit_pos * byte_cnt));
+            data_byte |= (1 << bit_pos);
         }
         break;
 
@@ -227,14 +229,20 @@ void OneWireInterrupt(void)
         {
           bit_pos++;
 
+
           /* one wire commands always 1-byte long */
           if (bit_pos == 8)
           {
+            ibutton.key |= (uint64_t)data_byte << byte_cnt;
+//            if (counter == 0)
+//              bit_pos = 15;
             bit_pos = 0;
-            byte_cnt++;
+            data_byte = 0;
+            byte_cnt+=8;
+//            counter++;
           }
 
-          if (byte_cnt == KEY_SIZE)
+          if (byte_cnt == 64)
           {
             /* wszystko odebrane, co robic w idle ? kiedy wznawiac polling ??
              * moze po sprawdzeniu klucza ? zapisie go do jakiejs bazy ? */
