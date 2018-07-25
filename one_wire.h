@@ -39,26 +39,13 @@
 #define OW_PIN            0
 #define OW_PIN_DEF_CFG    GPIO_OUT_OD_100MHz    // for 1Hz 'search rom' polling
 
-//#define OW_LOW  (_set_low(OW_PORT, OW_PIN)) // pull 1Wire bus low
-//#define OW_HIGH (_set_high(OW_PORT, OW_PIN)) // release the bus
-//TODO: do sprawdzenia zapisy atomowe !
 #define OW_LOW  _set_atomic_low(OW_PORT, OW_PIN)
 #define OW_HIGH _set_atomic_high(OW_PORT, OW_PIN)
 
-// przelaczanie w input mode nie jest potrzebne !
-// przy konfiguracji pinnu jako OUTPUT (moze byc OD), wejsciowy
-// przerzutnik shmidta i tak jest aktywny i sampluje co period AHB (RM 8.3.10)
-//#define OW_INPUT_MODE (OW_PORT->MODER &= ~(1 << (OW_PIN * 2)))
-//#define OW_OD_MODE    (OW_PORT->MODER |= (1 << (OW_PIN * 2)))
-//a moze jednak tak ? zawsze bezpieczniej czyscic najpierw ustawiane bity, mniejsze ryzyko pomylki
-//#define OW_INPUT_MODE()   do { OW_PORT->MODER &= ~(GPIO_MODER_mask << (OW_PIN * 2)); OW_PORT->MODER |= (GPIO_MODER_IN_value << (OW_PIN * 2)));  } while (0)
-//#define OW_OD_MODE()      do { OW_PORT->MODER &= ~(GPIO_MODER_mask << (OW_PIN * 2)); OW_PORT->MODER |= (GPIO_MODER_OUT_value << (OW_PIN * 2))); } while (0)
-
 #define OW_READ_BUS (_gpio_read(OW_PORT, OW_PIN))
 
-#define SERIAL_NUMBER_SIZE 6
-//TODO: sizeof(TIButtonKey) ? sprawdzic padding i czy na pewno bedzie 8 bajtow
-#define KEY_SIZE  8 // ibutton key size in bytes
+#define SERIAL_NUMBER_SIZE 6  // bytes
+#define KEY_SIZE  64 // ibutton key size in bits
 
 typedef enum
 {

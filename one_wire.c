@@ -142,9 +142,9 @@ void OneWireInterrupt(void)
   uint32_t sr;
   static uint8_t data_byte;
   static uint8_t bit_pos;
-  static uint8_t byte_cnt;
-  uint8_t temp = sizeof(ibutton);
+  static uint8_t bit_cnt;
 
+  /* read 1wire bus */
   uint32_t bus_state = OW_READ_BUS;
 
   /* depending on 1Wire state, take the action */
@@ -229,25 +229,20 @@ void OneWireInterrupt(void)
         {
           bit_pos++;
 
-
           /* one wire commands always 1-byte long */
           if (bit_pos == 8)
           {
-            ibutton.key |= (uint64_t)data_byte << byte_cnt;
-//            if (counter == 0)
-//              bit_pos = 15;
+            ibutton.key |= (uint64_t)data_byte << bit_cnt;
             bit_pos = 0;
             data_byte = 0;
-            byte_cnt+=8;
-//            counter++;
+            bit_cnt+=8;
           }
 
-          if (byte_cnt == 64)
+          if (bit_cnt == KEY_SIZE)
           {
-            /* wszystko odebrane, co robic w idle ? kiedy wznawiac polling ??
-             * moze po sprawdzeniu klucza ? zapisie go do jakiejs bazy ? */
+            /* key received, end of transmission */
             one_wire_state = idle;
-            OwStart();
+            bit_cnt = 0;
           }
           else
             OwStart(); // keep rolling
@@ -291,16 +286,8 @@ void OneWireInterrupt(void)
     break;
 
     case idle:
-    {
-      _set_high(GREEN_LED_PORT, GREEN_LED_PIN);
-      one_wire_state = idle;  // just to stop debugger here
-    }
-    break;
-
     default:
-      /* we should never be here
-       * add state machine error handler ? */
-      break;
+    break;
   }
 }
 
