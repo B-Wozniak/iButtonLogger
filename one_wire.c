@@ -5,31 +5,55 @@
  *      Author: Bart
  *
  *  TODO:
- *  - OwStart() - zamiast tego po prostu jedna instrukcja wlaczac timer ?
- *  - bariery - sprawdzic poprawnosc kasowania flag statusu przerwan (OW_TIM->SR),
- *              czy przypadkiem nie trzeba uzyc barier
+ *  - polling na one pulse mode ? tak chyba powinno byc
  */
 
 #include "iButtonLogger.h"
 
-/* macros to PSC, ARR val -> to not forget ( -1 ) */
+/* macros to PSC, ARR val -> to not forget ( -1 ) and double clock freq if apb_div != 1 */
 #define _arr_val(val) ((val) - 1)
-#define _psc_val(val) (val * APB1_TIMER_MULT - 1)
+#define _apb1_tim_psc_val(val) (val * APB1_TIMER_MULT - 1)
 #define _ow_sample ()
 
-static void OWPollingInit(void);
 static void OWWriteInit(EOwCmd cmd);
 static void OWReadInit(void);
 static void OwStart(void);
+static uint8_t _crc_ibutton_update(uint8_t crc, uint8_t data);
 
-static volatile TIButton ibutton;
-
-static volatile EOwState one_wire_next_state = idle;
 static const uint8_t one_wire_cmd_values[one_wire_commands] = {0x33, 0xF0, 0x55, 0xCC};
-
 static const uint8_t * ow_cmd = NULL;
 
+static volatile EOwState one_wire_next_state = idle;
 volatile EOwState one_wire_state = idle;
+TIButton ibutton;
+
+uint8_t CheckCrc(uint8_t *data)
+{
+  uint8_t i, crc;
+
+  crc = 0x00;
+
+  for (i = 0; i < 8; i++)
+    crc = _crc_ibutton_update(crc, data[i]);
+
+  return crc ? FAILURE : SUCCES;
+}
+
+static uint8_t _crc_ibutton_update(uint8_t crc, uint8_t data)
+{
+  uint8_t i;
+
+  crc = crc ^ data;
+
+  for (i = 0; i < 8; i++)
+  {
+    if (crc & 0x01)
+      crc = (crc >> 1) ^ 0x8C;
+    else
+      crc >>= 1;
+  }
+  return crc;
+}
 
 void OWInit(void)
 {
@@ -42,7 +66,9 @@ void OWInit(void)
   OW_TIM->CR1 |= TIM_CR1_URS;
 
   /* 1Wire timer == 1MHz */
-  OW_TIM->PSC = 80 - 1;
+  OW_TIM->PSC = _apb1_tim_psc_val(80);
+
+  OW_TIM->CR1 |= TIM_CR1_OPM;
 
   /* turn on irqn's */
   NVIC_EnableIRQ(OW_IRQn);
@@ -64,6 +90,8 @@ void OWPollingInit(void)
 {
   one_wire_state = polling;
 
+  _set_high(RED_LED_PORT, RED_LED_PIN);
+
   /* enable irqns on channels */
   OW_TIM->DIER = TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE | TIM_DIER_CC3IE;
 
@@ -79,7 +107,7 @@ void OWPollingInit(void)
  * @brief Init one wire state machine: write
  */
 
-void OWWriteInit(EOwCmd cmd)
+static void OWWriteInit(EOwCmd cmd)
 {
   one_wire_state = write;
   ow_cmd = &one_wire_cmd_values[cmd];
@@ -96,7 +124,7 @@ void OWWriteInit(EOwCmd cmd)
  * @brief Init one wire state machine: read
  */
 
-void OWReadInit(void)
+static void OWReadInit(void)
 {
   one_wire_state = read;
 
@@ -112,7 +140,7 @@ void OWReadInit(void)
  * @brief Trigger for one wire timer
  */
 
-void OwStart(void)
+static void OwStart(void)
 {
   OW_TIM->SR = 0;
   if (one_wire_state != polling)
@@ -181,12 +209,6 @@ void OneWireInterrupt(void)
             /* presence pulse detected */
             _set_low(RED_LED_PORT, RED_LED_PIN);
             one_wire_next_state = write;
-            OW_TIM->CR1 |= TIM_CR1_OPM;
-          }
-          else
-          {
-            /* no device on bus, turn on red led */
-            _set_high(RED_LED_PORT, RED_LED_PIN);
           }
         }
         break;
@@ -199,6 +221,9 @@ void OneWireInterrupt(void)
             /* start write sequence */
             OWWriteInit(read_rom);
           }
+          else
+            /* keep polling */
+            OwStart();
         }
         break;
       }
@@ -241,8 +266,8 @@ void OneWireInterrupt(void)
           if (bit_cnt == KEY_SIZE)
           {
             /* key received, end of transmission */
-            one_wire_state = idle;
             bit_cnt = 0;
+            one_wire_state = button_read;
           }
           else
             OwStart(); // keep rolling
@@ -286,6 +311,7 @@ void OneWireInterrupt(void)
     break;
 
     case idle:
+    case button_read:
     default:
     break;
   }

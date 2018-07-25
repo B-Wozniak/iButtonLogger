@@ -53,6 +53,7 @@ typedef enum
   polling,
   write,
   read,
+  button_read
 }EOwState;
 
 typedef union
@@ -60,9 +61,10 @@ typedef union
   struct
   {
     uint8_t family_code;
-    uint8_t serial_number[SERIAL_NUMBER_SIZE];
+    uint8_t serial_number[6];
     uint8_t crc;
-  }rom;
+  }rom_elem;
+  uint8_t key_byte[8];
   uint64_t key;
 }TIButton;
 
@@ -76,7 +78,11 @@ typedef enum
 }EOwCmd;
 
 extern volatile EOwState one_wire_state;
+extern TIButton ibutton;
+
 
 void OWInit(void);
+void OWPollingInit(void);
+uint8_t CheckCrc(uint8_t *data);
 
 #endif /* ONE_WIRE_H_ */

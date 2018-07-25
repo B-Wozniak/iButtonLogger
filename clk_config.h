@@ -24,28 +24,26 @@
 #define RCC_CR_MSIRANGE_48MHz       RCC_CR_MSIRANGE_11
 
 /* configured clocks */
-#define SYSCLK          32000000UL  // MSI 32MHz
+#define SYSCLK          8000000UL  // PLL 80MHz
 #define AHB_CLK         SYSCLK      // no presc
-#define APB1_DIV        4UL
-#define APB2_DIV        4UL
+#define APB1_DIV        1UL
+#define APB2_DIV        1UL
 #define APB1_CLK        (SYSCLK / APB1_DIV)
 #define APB2_CLK        (SYSCLK / APB2_DIV)
 
-#define USE_APB1_DIV TRUE
-#define USE_APB2_DIV TRUE
 
 #if APB1_CLK < 1000000
 #error apb1 clock should be at least 1MHz, 1Wire configuration requirement
 #endif
 
 
-#if USE_APB1_DIV == TRUE
+#if APB1_DIV != 1UL
 #define APB1_TIMER_MULT 2
 #else
 #define APB1_TIMER_MULT 1
 #endif
 
-#if USE_APB2_DIV == TRUE
+#if APB2_DIV != 1UL
 #define APB2_TIMER_MULT 2
 #else
 #define APB2_TIMER_MULT 1
