@@ -9,5 +9,6 @@
 #define TIMERS_H_
 
 void TIM2_config(void);
+void TIM5_config(void);
 
 #endif /* TIMERS_H_ */

@@ -12,32 +12,42 @@
  */
 void SystemClockConfig(void)
 {
+  RCC->APB1ENR1 |= RCC_APB1ENR1_PWREN;
+  PWR->CR1 |= PWR_CR1_DBP;
+
+  /* turn on LSE */
+  RCC->BDCR |= RCC_BDCR_LSEON;
+  while ((RCC->CR & RCC_BDCR_LSERDY) == 0);
+
+  RCC->AHB1ENR |= RCC_AHB1ENR_FLASHEN;
+  FLASH->ACR |= FLASH_ACR_LATENCY_4WS;
+
   /* turn on HSI clock and wait till HSI is stable*/
   RCC->CR |= RCC_CR_HSION;
   while ((RCC->CR & RCC_CR_HSIRDY) == 0);
 
   /* select HSI as system clock */
-  RCC->CFGR |= RCC_CFGR_SW_HSI;
-  while ((RCC->CFGR & RCC_CFGR_SWS_HSI) == 0);
+  RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW_Msk) | RCC_CFGR_SW_HSI;
+  while ((RCC->CFGR & RCC_CFGR_SWS_HSI) != RCC_CFGR_SWS_HSI);
 
   /* turn off MSI to set frequency */
-  RCC->CR &= ~(RCC_CR_MSION);
-  RCC->CR |= RCC_CR_MSIRGSEL;
-  __DSB();
+  RCC->CR &= ~RCC_CR_MSION_Msk;
 
-  /* set MSI to 32MHz */
-  RCC->CR = RCC_CR_MSIRANGE_32MHz;
+  /* set MSI to 4MHz */
+  RCC->CR = (RCC->CR & ~RCC_CR_MSIRANGE_Msk) | RCC_CR_MSIRGSEL | RCC_CR_MSIPLLEN | RCC_CR_MSIRANGE_4MHz;
   RCC->CR |= RCC_CR_MSION;
   while ((RCC->CR & RCC_CR_MSIRDY) == 0);
 
-  /* select MSI as system clock */
-  RCC->CFGR &= ~(RCC_CFGR_SW_Msk);
-  RCC->CFGR |= RCC_CFGR_SW_MSI;
-  while (RCC->CFGR & RCC_CFGR_SWS_MSI);
+  /* configure PLL */
+  RCC->PLLCFGR = RCC_PLLCFGR_PLLREN | ((uint32_t)40 << RCC_PLLCFGR_PLLN_Pos) | RCC_PLLCFGR_PLLSRC_MSI;
+  RCC->CR |= RCC_CR_PLLON;
+
+  while ((RCC->CR & RCC_CR_PLLRDY) == 0);
+
+  /* select PLL as system clock */
+  RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW_Msk) | RCC_CFGR_SW_PLL;// | RCC_CFGR_PPRE1_DIV8;
+  while ((RCC->CFGR & RCC_CFGR_SWS_PLL) != RCC_CFGR_SWS_PLL);
 
   /* turn off HSI */
   RCC->CR &= ~(RCC_CR_HSION);
-
-  /* set buses frequency */
-  RCC->CFGR |= RCC_CFGR_PPRE1_DIV4 | RCC_CFGR_PPRE2_DIV4;
 }

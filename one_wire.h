@@ -32,23 +32,20 @@
 #define OW_IRQn TIM2_IRQn
 #define OneWireInterrupt  TIM2_IRQHandler
 
-
 #define OW_TIM_PRESC_VAL  31999UL
 #define OW_TIM_ARR        1000UL
 #define OW_TIM_IRQN       TIM2_IRQn
-#define OW_PORT           GPIOA
-#define OW_PIN            2
-#define OW_PIN_DEF_CFG    GPIO_OUT_OD_2MHz    // for 1Hz 'search rom' polling
+#define OW_PORT           GPIOD
+#define OW_PIN            0
+#define OW_PIN_DEF_CFG    GPIO_OUT_OD_100MHz    // for 1Hz 'search rom' polling
 
-#define OW_LOW  (_set_low(OW_PORT, OW_PIN)) // pull 1Wire bus low
-#define OW_HIGH (_set_high(OW_PORT, OW_PIN)) // release the bus
-#define OW_INPUT_MODE (gpio_pin_cfg(OW_PORT, OW_PIN, GPIO_IN_FLOATING))
-#define OW_OD_MODE (gpio_pin_cfg(OW_PORT, OW_PIN, GPIO_OUT_OD_100MHz))
+#define OW_LOW  _set_atomic_low(OW_PORT, OW_PIN)
+#define OW_HIGH _set_atomic_high(OW_PORT, OW_PIN)
+
 #define OW_READ_BUS (_gpio_read(OW_PORT, OW_PIN))
 
-#define SERIAL_NUMBER_SIZE 6
-//TODO: sizeof(TIButtonKey) ? sprawdzic padding i czy na pewno bedzie 8 bajtow
-#define KEY_SIZE  8 // ibutton key size in bytes
+#define SERIAL_NUMBER_SIZE 6  // bytes
+#define KEY_SIZE  64 // ibutton key size in bits
 
 typedef enum
 {
@@ -62,9 +59,9 @@ typedef union
 {
   struct
   {
-    uint8_t crc;
-    uint8_t serial_number[SERIAL_NUMBER_SIZE];
     uint8_t family_code;
+    uint8_t serial_number[SERIAL_NUMBER_SIZE];
+    uint8_t crc;
   }rom;
   uint64_t key;
 }TIButton;
@@ -77,6 +74,8 @@ typedef enum
   skip_rom,
   one_wire_commands // do not use, only size of enum
 }EOwCmd;
+
+extern volatile EOwState one_wire_state;
 
 void OWInit(void);
 
