@@ -50,10 +50,9 @@
 typedef enum
 {
   idle = 0,
-  polling,
+  reset,
   write,
   read,
-  button_read
 }EOwState;
 
 typedef union
@@ -82,7 +81,7 @@ extern TIButton ibutton;
 
 
 void OneWireInit(void);
-void OWPollingInit(void);
-uint8_t CheckCrc(uint8_t *data);
+void OneWirePoll(void);
+void OneWireReset(void);
 
 #endif /* ONE_WIRE_H_ */

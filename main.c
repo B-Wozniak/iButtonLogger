@@ -19,7 +19,9 @@ int main(void)
   SerialInit();
   OneWireInit();
 
-  OWPollingInit();
+  TIM5_config();
+
+  OneWirePoll();
   while (1) continue;
 }
 

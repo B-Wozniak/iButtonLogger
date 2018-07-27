@@ -15,10 +15,12 @@
 #define _apb1_tim_psc_val(val) (val * APB1_TIMER_MULT - 1)
 #define _ow_sample ()
 
+inline static void  OneWirePollStop(void);
 static void OWWriteInit(EOwCmd cmd);
 static void OWReadInit(void);
 static void OwStart(void);
 static uint8_t _crc_ibutton_update(uint8_t crc, uint8_t data);
+static uint8_t CheckCrc(uint8_t *data);
 
 static const uint8_t one_wire_cmd_values[one_wire_commands] = {0x33, 0xF0, 0x55, 0xCC};
 static const uint8_t * ow_cmd = NULL;
@@ -27,7 +29,7 @@ static volatile EOwState one_wire_next_state = idle;
 volatile EOwState one_wire_state = idle;
 TIButton ibutton;
 
-uint8_t CheckCrc(uint8_t *data)
+static uint8_t CheckCrc(uint8_t *data)
 {
   uint8_t i, crc;
 
@@ -69,8 +71,24 @@ void OneWireInit(void)
   /* one wire timer works in one pulse mode, always */
   OW_TIM->CR1 |= TIM_CR1_OPM;
 
+  /* enable irqns on channels */
+  OW_TIM->DIER = TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE;
+
   /* turn on irqn's */
   NVIC_EnableIRQ(OW_IRQn);
+}
+
+inline void OneWirePoll(void)
+{
+  _set_high(RED_LED_PORT, RED_LED_PIN);
+  TIM5->CR1 |= TIM_CR1_CEN;
+}
+
+inline static void OneWirePollStop(void)
+{
+  TIM5->CR1 &= ~TIM_CR1_CEN_Msk;
+  TIM5->CNT = 0;
+  TIM5->SR = 0;
 }
 
 /*
@@ -81,20 +99,15 @@ void OneWireInit(void)
  * - count to OW_C = 60us, then test bus for the presence pulse
  * - if presence pulse detected, switch to write state
  */
-void OWPollingInit(void)
+void OneWireReset(void)
 {
-  one_wire_state = polling;
-
-  _set_high(RED_LED_PORT, RED_LED_PIN);
-
-  /* enable irqns on channels */
-  OW_TIM->DIER = TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE | TIM_DIER_CC3IE;
-
-  OW_TIM->CCR1 = OW_POLLING;
-  OW_TIM->CCR2 = OW_POLLING + OW_H;
-  OW_TIM->CCR3 = OW_POLLING + OW_H + OW_I;
-  OW_TIM->ARR = _arr_val(OW_POLLING + OW_H + OW_I + OW_J);
-
+  if (one_wire_state != reset)
+  {
+    one_wire_state = reset;
+    OW_TIM->CCR1 = OW_H;
+    OW_TIM->CCR2 = OW_H + OW_I;
+    OW_TIM->ARR = _arr_val(OW_H + OW_I + OW_J);
+  }
   OwStart();
 }
 
@@ -107,7 +120,6 @@ static void OWWriteInit(EOwCmd cmd)
   one_wire_state = write;
   ow_cmd = &one_wire_cmd_values[cmd];
 
-  OW_TIM->DIER = TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE;
   OW_TIM->CCR1 = OW_A;  // write 1 time
   OW_TIM->CCR2 = OW_C;  // write 0 time
   OW_TIM->ARR = _arr_val(OW_T_BIT);
@@ -123,7 +135,6 @@ static void OWReadInit(void)
 {
   one_wire_state = read;
 
-  OW_TIM->DIER = TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE;
   OW_TIM->CCR1 = OW_A;
   OW_TIM->CCR2 = OW_A + OW_E;
   OW_TIM->ARR = _arr_val(OW_T_BIT);
@@ -138,25 +149,20 @@ static void OWReadInit(void)
 static void OwStart(void)
 {
   OW_TIM->SR = 0;
-  if (one_wire_state != polling)
-    OW_LOW;
+  OW_LOW;
   OW_TIM->CR1 |= TIM_CR1_CEN;
 }
 
-// polling state
-#define _polling_time               TIM_SR_CC1IF
-#define _polling_reset_time         TIM_SR_CC2IF
-#define _polling_presence_sample    TIM_SR_CC3IF
-#define _poll_and_reset_end         TIM_SR_UIF
-
+// reset state
+#define _reset_time                 TIM_SR_CC1IF
+#define _presence_sample            TIM_SR_CC2IF
+#define _reset_end                  TIM_SR_UIF
 // write state
 #define _write_one_time             TIM_SR_CC1IF
 #define _write_zero_time            TIM_SR_CC2IF
-
 // read state
 #define _read_bus_release           TIM_SR_CC1IF
 #define _read_sample                TIM_SR_CC2IF
-
 // read, write common
 #define _bit_end                    TIM_SR_UIF
 
@@ -167,40 +173,34 @@ void OneWireInterrupt(void)
   static uint8_t bit_pos;
   static uint8_t bit_cnt;
 
+  sr = OW_TIM->SR & (TIM_SR_CC1IF | TIM_SR_CC2IF | TIM_SR_UIF);
+  OW_TIM->SR = 0;
+
   /* read 1wire bus */
   uint32_t bus_state = OW_READ_BUS;
 
   /* depending on 1Wire state, take the action */
   switch(one_wire_state)
   {
-    case polling:
+    case reset:
     {
-      sr = OW_TIM->SR & (TIM_SR_CC1IF | TIM_SR_CC2IF | TIM_SR_CC3IF | TIM_SR_UIF);
-      OW_TIM->SR = 0;
-
       switch(sr)
       {
-        case _polling_time:
+        case _reset_time:
         {
-          /* polling time elapsed, start reset sequence -> pull bus low */
-          OW_LOW;
-        }
-        break;
-
-        case _polling_reset_time:
-        {
-          /* reset time elapsed, release the bus, change pin mode to input,
+          /* reset time elapsed, release the bus,
            * master waits for presence pulse from slave
            */
           OW_HIGH;
         }
         break;
 
-        case _polling_presence_sample:
+        case _presence_sample:
         {
           /* it is time to sample bus */
           if (!bus_state)
           {
+            OneWirePollStop();
             /* presence pulse detected */
             _set_low(RED_LED_PORT, RED_LED_PIN);
             one_wire_next_state = write;
@@ -208,7 +208,7 @@ void OneWireInterrupt(void)
         }
         break;
 
-        case _poll_and_reset_end:
+        case _reset_end:
         {
           /* end of reset sequence, do nothing if no device on bus*/
           if (one_wire_next_state == write)
@@ -216,9 +216,6 @@ void OneWireInterrupt(void)
             /* start write sequence */
             OWWriteInit(read_rom);
           }
-          else
-            /* keep polling */
-            OwStart();
         }
         break;
       }
@@ -227,9 +224,6 @@ void OneWireInterrupt(void)
 
     case read:
     {
-      sr = OW_TIM->SR & (TIM_SR_CC1IF | TIM_SR_CC2IF | TIM_SR_UIF);
-      OW_TIM->SR = 0;
-
       switch(sr)
       {
         case _read_bus_release:
@@ -264,6 +258,11 @@ void OneWireInterrupt(void)
             bit_cnt = 0;
             if (CheckCrc(ibutton.key_byte) == SUCCES)
               _set_high(GREEN_LED_PORT, GREEN_LED_PIN);
+            else
+            {
+              SerialSendString(USART2, "Button read failure, polling again\n");
+              OneWirePoll();
+            }
           }
           else
             OwStart(); // keep rolling
@@ -275,9 +274,6 @@ void OneWireInterrupt(void)
 
     case write:
     {
-      sr = OW_TIM->SR & (TIM_SR_CC1IF | TIM_SR_CC2IF | TIM_SR_UIF);
-      OW_TIM->SR = 0;
-
       switch(sr)
       {
         case _write_one_time:
@@ -307,7 +303,6 @@ void OneWireInterrupt(void)
     break;
 
     case idle:
-    case button_read:
     default:
     break;
   }

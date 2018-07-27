@@ -196,6 +196,8 @@ void EXTI15_10_IRQHandler(void) __attribute__ ((interrupt, weak, alias("__Defaul
 // RTC Alarm (A and B) through EXTI Line
 void RTC_Alarm_IRQHandler(void) __attribute__ ((interrupt, weak, alias("__Default_Handler")));
 
+void DFSDM1_FLT3_IRQHandler(void) __attribute__ ((interrupt, weak, alias("__Default_Handler")));
+
 // TIM8_BRK_IRQHandler
 void TIM8_BRK_IRQHandler(void) __attribute__ ((interrupt, weak, alias("__Default_Handler")));
 
@@ -382,6 +384,7 @@ void (* const vectors[])(void) __attribute__ ((section(".vectors"))) = {
   USART3_IRQHandler,                    // USART3
   EXTI15_10_IRQHandler,                 // External Line[15:10]s
   RTC_Alarm_IRQHandler,                 // RTC Alarm (A and B) through EXTI Line
+  DFSDM1_FLT3_IRQHandler,
   TIM8_BRK_IRQHandler,                  // TIM8 Break
   TIM8_UP_IRQHandler,                   // TIM8 Update
   TIM8_TRG_COM_IRQHandler,              // TIM8 Trigger and Commutation
