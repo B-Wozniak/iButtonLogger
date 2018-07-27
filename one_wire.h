@@ -81,7 +81,7 @@ extern volatile EOwState one_wire_state;
 extern TIButton ibutton;
 
 
-void OWInit(void);
+void OneWireInit(void);
 void OWPollingInit(void);
 uint8_t CheckCrc(uint8_t *data);
 

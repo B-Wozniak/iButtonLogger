@@ -22,7 +22,7 @@ static const TSerial * const serial_interfaces[] =
 // rowinac makro przy kolejnych serialach
 #define _GetSerialPtr(usart_id) (usart_id == USART2 ? (const TSerial *)&usart2_cfg : (void *)0)
 
-void ConfigureSerialPorts(void)
+void SerialInit(void)
 {
   uint8_t i;
 

@@ -17,8 +17,8 @@
 #define USART2_CLK_EN_VAL   (RCC_APB1ENR1_USART2EN)
 #define USART2_BR           9600UL
 #define USART2_CLK          APB1_CLK
-#define USART2_TX_PIN_CFG   GPIO_AF7_PP_2MHz
-#define USART2_RX_PIN_CFG   GPIO_AF7_PP_2MHz
+#define USART2_TX_PIN_CFG   GPIO_AF7_PP_100MHz
+#define USART2_RX_PIN_CFG   GPIO_AF7_PP_100MHz
 
 /* USART3 SETTINGS */
 #define USART3_TX_PORT      GPIOD
@@ -63,7 +63,7 @@ typedef struct
   IRQn_Type IRqn;
 }TSerial;
 
-void ConfigureSerialPorts(void);
+void SerialInit(void);
 void SerialSendByte(USART_TypeDef * usart_id, const char data);
 void SerialSendString(USART_TypeDef * usart_id, const char * str);
 

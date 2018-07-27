@@ -36,7 +36,7 @@ uint8_t CheckCrc(uint8_t *data)
   for (i = 0; i < 8; i++)
     crc = _crc_ibutton_update(crc, data[i]);
 
-  return crc ? FAILURE : SUCCES;
+  return crc == 0 ? SUCCES : FAILURE;
 }
 
 static uint8_t _crc_ibutton_update(uint8_t crc, uint8_t data)
@@ -55,7 +55,7 @@ static uint8_t _crc_ibutton_update(uint8_t crc, uint8_t data)
   return crc;
 }
 
-void OWInit(void)
+void OneWireInit(void)
 {
   /* configure OneWire port and pin*/
   gpio_pin_cfg(OW_PORT, OW_PIN, OW_PIN_DEF_CFG);
@@ -63,20 +63,15 @@ void OWInit(void)
   /* enable OneWire clock in RCC register*/
   *OW_TIM_EN_REG |= OW_TIM_EN_VAL;
 
-  OW_TIM->CR1 |= TIM_CR1_URS;
-
   /* 1Wire timer == 1MHz */
   OW_TIM->PSC = _apb1_tim_psc_val(80);
 
+  /* one wire timer works in one pulse mode, always */
   OW_TIM->CR1 |= TIM_CR1_OPM;
 
   /* turn on irqn's */
   NVIC_EnableIRQ(OW_IRQn);
-
-  /* init 1-sec polling (search for slave)*/
-  OWPollingInit();
 }
-
 
 /*
  * @brief Init one wire state machine: polling
@@ -267,7 +262,8 @@ void OneWireInterrupt(void)
           {
             /* key received, end of transmission */
             bit_cnt = 0;
-            one_wire_state = button_read;
+            if (CheckCrc(ibutton.key_byte) == SUCCES)
+              _set_high(GREEN_LED_PORT, GREEN_LED_PIN);
           }
           else
             OwStart(); // keep rolling

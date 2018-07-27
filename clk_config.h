@@ -24,7 +24,7 @@
 #define RCC_CR_MSIRANGE_48MHz       RCC_CR_MSIRANGE_11
 
 /* configured clocks */
-#define SYSCLK          8000000UL  // PLL 80MHz
+#define SYSCLK          80000000UL  // PLL 80MHz
 #define AHB_CLK         SYSCLK      // no presc
 #define APB1_DIV        1UL
 #define APB2_DIV        1UL
