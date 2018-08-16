@@ -21,16 +21,4 @@ void TIM2_config(void)
   TIM2->CR1 |= TIM_CR1_CEN;
 }
 
-void TIM5_config(void)
-{
-  RCC->APB1ENR1 |= RCC_APB1ENR1_TIM5EN;
-  TIM5->PSC = (8000 * APB1_TIMER_MULT) - 1;
-  TIM5->ARR = -1;
 
-}
-
-//void TIM2_IRQHandler(void)
-//{
-//  TIM2->SR = 0;
-//  _toggle_pin(RED_LED_PORT, RED_LED_PIN);
-//}

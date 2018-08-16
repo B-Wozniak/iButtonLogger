@@ -17,5 +17,6 @@
 #include "def.h"
 #include "gpio.h"
 #include "one_wire.h"
+#include "numtoascii.h"
 
 #endif /* IBUTTONLOGGER_H_ */

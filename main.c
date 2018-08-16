@@ -7,6 +7,9 @@
 
 #include "iButtonLogger.h"
 
+char buff[50];
+char * buff_ptr = buff;
+
 int main(void)
 {
   /* set system and bus clocks */
@@ -15,26 +18,17 @@ int main(void)
   /* configure gpios */
   GpioConfig();
 
-  ConfigureSerialPorts();
+  /* interfaces */
+  SerialInit();
+  OneWireInit();
 
-  /* Init OneWire */
-  OWInit();
-
+  OneWirePoll();
   while (1)
   {
-    if (one_wire_state == button_read)
+    if (ow_flags & OW_BUTTON_READ_SUCCESS)
     {
-      if (CheckCrc(ibutton.key_byte) == SUCCESS)
-      {
-        _set_high(GREEN_LED_PORT, GREEN_LED_PIN);
-        SerialSendString(USART2, "iButton Key: ");
-//        TODO: SerialSendString(USART2, ByteToAsciHex(*buff, ibutton.key_byte));
-//        a moze SerialSendKey() ?
-      }
-      else
-        SerialSendString(USART2, "Readout failure\n");
-
-      OWPollingInit();
+      ow_flags = 0;
+      SerialSendString(USART2, BytesToOctetString(ibutton.key_byte, buff, KEY_SIZE_BYTE));
     }
   }
 }

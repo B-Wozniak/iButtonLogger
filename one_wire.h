@@ -23,37 +23,45 @@
 #define OW_POLLING  1000000UL // 1s
 
 
-/* OneWire default settings */
+/* state machine timer */
 #define OW_TIM              TIM2
 #define OW_TIM_EN_REG       &(RCC->APB1ENR1)
 #define OW_TIM_EN_VAL       (RCC_APB1ENR1_TIM2EN)
 #define OW_TIM_PRESC_1000   1000UL
+#define OW_TIM_IRQN         TIM2_IRQn
+#define OW_TIM_IRQn         TIM2_IRQn
+#define OneWireIRQn    TIM2_IRQHandler
 
-#define OW_IRQn TIM2_IRQn
-#define OneWireInterrupt  TIM2_IRQHandler
+/* polling timer */
+#define OW_POLL_TIM         TIM5
+#define OW_POLL_TIM_EN_REG  &(RCC->APB1ENR1)
+#define OW_POLL_TIM_EN_VAL  (RCC_APB1ENR1_TIM5EN)
+#define OW_POLL_TIM_IRQn    TIM5_IRQn
+#define OneWirePollIRQn        TIM5_IRQHandler
 
-#define OW_TIM_PRESC_VAL  31999UL
-#define OW_TIM_ARR        1000UL
-#define OW_TIM_IRQN       TIM2_IRQn
-#define OW_PORT           GPIOD
-#define OW_PIN            0
-#define OW_PIN_DEF_CFG    GPIO_OUT_OD_100MHz    // for 1Hz 'search rom' polling
-
-#define OW_LOW  _set_atomic_low(OW_PORT, OW_PIN)
-#define OW_HIGH _set_atomic_high(OW_PORT, OW_PIN)
-
-#define OW_READ_BUS (_gpio_read(OW_PORT, OW_PIN))
+/* OneWire GPIO */
+#define OW_PORT             GPIOD
+#define OW_PIN              0
+#define OW_PIN_DEF_CFG      GPIO_OUT_OD_100MHz    // for 1Hz 'search rom' polling
+#define OW_LOW              _set_atomic_low(OW_PORT, OW_PIN)
+#define OW_HIGH             _set_atomic_high(OW_PORT, OW_PIN)
+#define OW_READ_BUS         _gpio_read(OW_PORT, OW_PIN)
 
 #define SERIAL_NUMBER_SIZE 6  // bytes
 #define KEY_SIZE  64 // ibutton key size in bits
+#define KEY_SIZE_BYTE  8 // ibutton key size in bits
+
+/* flag masks */
+#define OW_BUTTON_READ_SUCCESS    0x01
+#define OW_BUTTON_READ_CRC_ERROR  0x02
+#define OW_POLL_EN 0x04
 
 typedef enum
 {
   idle = 0,
-  polling,
+  reset,
   write,
   read,
-  button_read
 }EOwState;
 
 typedef union
@@ -77,12 +85,13 @@ typedef enum
   one_wire_commands // do not use, only size of enum
 }EOwCmd;
 
+extern volatile uint8_t ow_flags;
 extern volatile EOwState one_wire_state;
 extern TIButton ibutton;
 
 
-void OWInit(void);
-void OWPollingInit(void);
-uint8_t CheckCrc(uint8_t *data);
+void OneWireInit(void);
+void OneWirePoll(void);
+void OneWireReset(void);
 
 #endif /* ONE_WIRE_H_ */

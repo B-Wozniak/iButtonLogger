@@ -8,5 +8,6 @@
 #ifndef NUMTOASCII_H_
 #define NUMTOASCII_H_
 
+char * BytesToOctetString(uint8_t * byte, char * buff, uint8_t size);
 
 #endif /* NUMTOASCII_H_ */
