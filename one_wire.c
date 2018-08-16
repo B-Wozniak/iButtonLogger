@@ -29,6 +29,8 @@ static volatile EOwState one_wire_next_state = idle;
 volatile EOwState one_wire_state = idle;
 TIButton ibutton;
 
+volatile uint8_t ow_flags;
+
 static uint8_t CheckCrc(uint8_t *data)
 {
   uint8_t i, crc;
@@ -38,7 +40,7 @@ static uint8_t CheckCrc(uint8_t *data)
   for (i = 0; i < 8; i++)
     crc = _crc_ibutton_update(crc, data[i]);
 
-  return crc == 0 ? SUCCES : FAILURE;
+  return crc == 0 ? SUCCESS : ERROR;
 }
 
 static uint8_t _crc_ibutton_update(uint8_t crc, uint8_t data)
@@ -62,33 +64,33 @@ void OneWireInit(void)
   /* configure OneWire port and pin*/
   gpio_pin_cfg(OW_PORT, OW_PIN, OW_PIN_DEF_CFG);
 
-  /* enable OneWire clock in RCC register*/
+  /* configure state machine timer */
   *OW_TIM_EN_REG |= OW_TIM_EN_VAL;
-
-  /* 1Wire timer == 1MHz */
-  OW_TIM->PSC = _apb1_tim_psc_val(80);
-
-  /* one wire timer works in one pulse mode, always */
+  OW_TIM->PSC = _apb1_tim_psc_val(80);  /* 1MHz */
   OW_TIM->CR1 |= TIM_CR1_OPM;
-
-  /* enable irqns on channels */
   OW_TIM->DIER = TIM_DIER_UIE | TIM_DIER_CC1IE | TIM_DIER_CC2IE;
+  NVIC_EnableIRQ(OW_TIM_IRQn);
 
-  /* turn on irqn's */
-  NVIC_EnableIRQ(OW_IRQn);
+  /* configure polling timer */
+  *OW_POLL_TIM_EN_REG |= OW_POLL_TIM_EN_VAL;
+  OW_POLL_TIM->PSC = (80 * APB1_TIMER_MULT) - 1;
+  OW_POLL_TIM->ARR = 1000000 - 1;     /* 1Hz */
+  OW_POLL_TIM->DIER = TIM_DIER_UIE;
+  NVIC_EnableIRQ(OW_POLL_TIM_IRQn);
 }
 
 inline void OneWirePoll(void)
 {
+  ow_flags |= OW_POLL_EN;
   _set_high(RED_LED_PORT, RED_LED_PIN);
-  TIM5->CR1 |= TIM_CR1_CEN;
+  OW_POLL_TIM->CR1 |= TIM_CR1_CEN;
 }
 
 inline static void OneWirePollStop(void)
 {
-  TIM5->CR1 &= ~TIM_CR1_CEN_Msk;
-  TIM5->CNT = 0;
-  TIM5->SR = 0;
+  OW_POLL_TIM->CR1 &= ~TIM_CR1_CEN_Msk;
+  OW_POLL_TIM->CNT = 0;
+  OW_POLL_TIM->SR = 0;
 }
 
 /*
@@ -166,7 +168,7 @@ static void OwStart(void)
 // read, write common
 #define _bit_end                    TIM_SR_UIF
 
-void OneWireInterrupt(void)
+void OneWireIRQn(void)
 {
   uint32_t sr;
   static uint8_t data_byte;
@@ -256,13 +258,13 @@ void OneWireInterrupt(void)
           {
             /* key received, end of transmission */
             bit_cnt = 0;
-            if (CheckCrc(ibutton.key_byte) == SUCCES)
-              _set_high(GREEN_LED_PORT, GREEN_LED_PIN);
-            else
+            if (CheckCrc(ibutton.key_byte) == SUCCESS)
             {
-              SerialSendString(USART2, "Button read failure, polling again\n");
-              OneWirePoll();
+              _set_high(GREEN_LED_PORT, GREEN_LED_PIN);
+              ow_flags |= OW_BUTTON_READ_SUCCESS;
             }
+            else
+              ow_flags |= OW_BUTTON_READ_CRC_ERROR;
           }
           else
             OwStart(); // keep rolling
@@ -308,3 +310,10 @@ void OneWireInterrupt(void)
   }
 }
 
+void OneWirePollIRQn(void)
+{
+  TIM5->SR = 0;
+  TIM5->SR = 0;
+
+  OneWireReset();
+}
