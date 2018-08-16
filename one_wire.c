@@ -60,10 +60,13 @@ void OWInit(void)
   /* configure OneWire port and pin*/
   gpio_pin_cfg(OW_PORT, OW_PIN, OW_PIN_DEF_CFG);
 
+  /*release the bus */
+  OW_HIGH;
+
   /* enable OneWire clock in RCC register*/
   *OW_TIM_EN_REG |= OW_TIM_EN_VAL;
 
-  OW_TIM->CR1 |= TIM_CR1_URS;
+  OW_TIM->CR1 |= TIM_CR1_URS; // necessary ?
 
   /* 1Wire timer == 1MHz */
   OW_TIM->PSC = _apb1_tim_psc_val(80);

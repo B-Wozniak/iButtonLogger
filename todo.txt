@@ -1,19 +1,15 @@
-iButtonLogger
+iButtonLogger todo's:
 
-TODO:
-1. RS-232 communication
-	- use interrupts
-	- DMA ?
-	- circular buffer
-	- itoa()
-	- ftoa()
-	- SendByte()
-	- SendString()
-	
-	
-2. 1-wire communication
-	- ow_read()
-	- ow_write()
-	- ow_search()
-	
-3. LCD handler
+1Wire Driver interface:
+1. ow_open()
+2. ow_close()
+3. ow_read()
+4. ow_write()
+5. ow_ioctl() - eye-octal, I/O control handles features not covered by the other parts of the interface.
+
+Different possibilities of implementation:
+ow_open()
+ow.open()
+OWOpen()
+ow_ioctl()
+ow.ioctl()
