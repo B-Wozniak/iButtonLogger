@@ -93,5 +93,6 @@ extern TIButton ibutton;
 void OneWireInit(void);
 void OneWirePoll(void);
 void OneWireReset(void);
+uint8_t * IButtonKeyToString(uint8_t * key);
 
 #endif /* ONE_WIRE_H_ */

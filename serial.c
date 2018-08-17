@@ -66,14 +66,14 @@ void SerialInit(void)
   }
 }
 
-void SerialSendByte(USART_TypeDef * usart_id, const char data)
+void SerialSendRawByte(USART_TypeDef * usart_id, const char data)
 {
   uint8_t tmp_head;
   const TSerial * si;
 
   si = _GetSerialPtr(usart_id);
 
-  tmp_head = (si->tx_buff->head + 1) & BUFF_MASK;
+  tmp_head = (si->tx_buff->head + 1) & CIRC_BUFF_MASK;
 
   /* czekaj na miejsce w buforze */
   while (tmp_head == si->tx_buff->tail);
@@ -88,11 +88,15 @@ void SerialSendString(USART_TypeDef * usart_id, const char * str)
   uint8_t tmp_head;
   const TSerial * si;
 
+  /* check if string isn't too long for circ buff */
+  if (strlen(str) >= CIRC_BUFF_SIZE)
+    return;
+
   si = _GetSerialPtr(usart_id);
 
   while (*str)
   {
-    tmp_head = (si->tx_buff->head + 1) & BUFF_MASK;
+    tmp_head = (si->tx_buff->head + 1) & CIRC_BUFF_MASK;
     while (tmp_head == si->tx_buff->tail);
     si->tx_buff->data[tmp_head] = *str++;
     si->tx_buff->head = tmp_head;
@@ -112,7 +116,7 @@ void USART2_IRQHandler(void)
     tmp_tail = usart2_tx_buff.tail;
     if (tmp_tail != usart2_tx_buff.head)
     {
-      tmp_tail = (tmp_tail + 1) & BUFF_MASK;
+      tmp_tail = (tmp_tail + 1) & CIRC_BUFF_MASK;
       USART2->TDR = usart2_tx_buff.data[tmp_tail];
       usart2_tx_buff.tail = tmp_tail;
     }

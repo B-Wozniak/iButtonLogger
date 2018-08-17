@@ -9,6 +9,7 @@
 #define IBUTTONLOGGER_H_
 
 #include <stdint.h>
+#include <string.h>
 #include "CMSIS/stm32l4xx.h"
 #include "CMSIS/system_stm32l4xx.h"
 #include "serial.h"
@@ -18,5 +19,7 @@
 #include "gpio.h"
 #include "one_wire.h"
 #include "numtoascii.h"
+#include "console.h"
+#include "globals.h"
 
 #endif /* IBUTTONLOGGER_H_ */

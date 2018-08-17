@@ -1,0 +1,13 @@
+/*
+ * console.c
+ *
+ *  Created on: 17 sie 2018
+ *      Author: 710_080370
+ */
+
+#include "iButtonLogger.h"
+
+void ConsolePrint(const char * str)
+{
+  SerialSendString(CONSOLE_USART, str);
+}

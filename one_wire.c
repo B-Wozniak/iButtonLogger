@@ -317,3 +317,17 @@ void OneWirePollIRQn(void)
 
   OneWireReset();
 }
+
+uint8_t * IButtonKeyToString(uint8_t * key)
+{
+  uint8_t * buff_ptr = vbuff.type.u8;
+  uint8_t i;
+
+  for (i = 0; i < KEY_SIZE_BYTE; i++)
+    buff_ptr = ByteToAsciiHex(buff_ptr, key[i]);
+
+  *buff_ptr = '\0';  /* add null character on the end */
+
+  return vbuff.type.u8;
+}
+

@@ -7,8 +7,7 @@
 
 #include "iButtonLogger.h"
 
-char buff[50];
-char * buff_ptr = buff;
+
 
 int main(void)
 {
@@ -28,7 +27,7 @@ int main(void)
     if (ow_flags & OW_BUTTON_READ_SUCCESS)
     {
       ow_flags = 0;
-      SerialSendString(USART2, BytesToOctetString(ibutton.key_byte, buff, KEY_SIZE_BYTE));
+      ConsolePrint((char *)IButtonKeyToString(ibutton.key_byte));
     }
   }
 }

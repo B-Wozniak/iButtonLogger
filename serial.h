@@ -32,12 +32,12 @@
 #define USART3_TX_PIN_CFG   GPIO_AF7_OD_2MHz
 #define USART3_RX_PIN_CFG   GPIO_AF7_OD_2MHz
 
-#define BUFF_SIZE 128UL
-#define BUFF_MASK (BUFF_SIZE - 1)
+#define CIRC_BUFF_SIZE 128UL
+#define CIRC_BUFF_MASK (CIRC_BUFF_SIZE - 1)
 
 typedef struct
 {
-  uint8_t data[BUFF_SIZE];
+  uint8_t data[CIRC_BUFF_SIZE];
   uint8_t head;             // pozycja nastêpnego wolnego bajtu
   uint8_t tail;             // ostatni odczytany bajt
 }TCircBuff;
@@ -64,7 +64,7 @@ typedef struct
 }TSerial;
 
 void SerialInit(void);
-void SerialSendByte(USART_TypeDef * usart_id, const char data);
+void SerialSendRawByte(USART_TypeDef * usart_id, const char data);
 void SerialSendString(USART_TypeDef * usart_id, const char * str);
 
 #endif /* SERIAL_H_ */
